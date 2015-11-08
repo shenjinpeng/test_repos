@@ -1,0 +1,1 @@
+"Scaler\Code\Hdmi.c" OPTIMIZE (9,SPEED) DEFINE (_PROJECT="_RTD2472D_DEMO_BOARD") PRINT(.\Output\Hdmi.lst) OBJECT(.\Output\Hdmi.obj)

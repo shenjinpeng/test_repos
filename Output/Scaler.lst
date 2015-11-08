@@ -1,0 +1,1568 @@
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE SCALER
+OBJECT MODULE PLACED IN .\Output\Scaler.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE Scaler\Code\Scaler.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_RTD2472D_DEMO_BOARD
+                    -) PRINT(.\Output\Scaler.lst) OBJECT(.\Output\Scaler.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : Scaler.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #define __SCALER__
+  21          
+  22          #include "Common\Header\Include.h"
+  23          
+  24          #if(_SCALER_SERIES_TYPE == _RTD2472D_SERIES)
+  25          
+  26          //--------------------------------------------------
+  27          // Description  : Page select for scalar(Only for CR[A1]~CR[DF])
+  28          // Input Value  : Page Number
+  29          // Output Value : None
+  30          //--------------------------------------------------
+  31          void CScalerPageSelect(BYTE page)
+  32          {
+  33   1      #if(_SCALER_TYPE == _RTD2472D)
+  34   1          CScalerSetByte(_PAGE_SELECT_9F, (page & 0x0F));
+  35   1      #elif((_SCALER_TYPE == _RTD2545LR) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  CScalerSetByte(_PAGE_SELECT_9F, (page & 0x1F));
+              #else
+                  No Setting !!
+              #endif //End of #if(_SCALER_TYPE == _RTD2472D)
+  40   1      }
+  41          
+  42          //--------------------------------------------------
+  43          // Description  : Initial settings for scaler
+  44          // Input Value  : None
+  45          // Output Value : None
+  46          //--------------------------------------------------
+  47          void CScalerInitial(void)
+  48          {
+  49   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+  50   1          CMcuSelectFlashClk(_XTAL_CLK);
+  51   1      #endif
+  52   1      
+  53   1          // Software reset for scaler
+  54   1          CScalerSetBit(_HOST_CTRL_01, ~(_BIT0 | _BIT1 | _BIT2), _BIT0);
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 2   
+
+  55   1      
+  56   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+  57   1          CTimerDelayXms(10);
+  58   1      #else
+                  CTimerDelayXms(100);
+              #endif
+  61   1      
+  62   1          CScalerSetBit(_HOST_CTRL_01, ~_BIT0, 0x00);
+  63   1          CScalerReset();
+  64   1          CTimerDelayXms(10);
+  65   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+  66   1          if(GET_POWERSTATUS())       // Power up Process
+  67   1          {
+  68   2              CMcuSelectFlashClk(_FLASH_CLK);
+  69   2          }
+  70   1      #endif
+  71   1      
+  72   1      #if(_RESET_CHECK_SUPPORT == _ON)
+                  CScalerSetBit(_HOST_CTRL_01, ~_BIT6, _BIT6);
+              #endif
+  75   1      
+  76   1      }
+  77          
+  78          //--------------------------------------------------
+  79          // Description  : Reset scaler process
+  80          // Input Value  : None
+  81          // Output Value : None
+  82          //--------------------------------------------------
+  83          void CScalerReset(void)
+  84          {
+  85   1          CScalerResetProcess();
+  86   1      
+  87   1          g_ucFormerSearchPort = 0;
+  88   1      
+  89   1      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+  90   1      
+  91   1          CSyncInputPort2DInitial();
+  92   1      #endif
+  93   1      
+  94   1          CScalerCodeW(tSCALER_POWERUP_INITIAL);
+  95   1      
+  96   1      #if(_SCALER_TYPE == _RTD2545LR)
+                  CMiscSetPinShare();
+              #endif
+  99   1      
+ 100   1          CAdjustDisableWatchDog(_WD_ALL);
+ 101   1      
+ 102   1          CMiscClearStatusRegister();
+ 103   1      
+ 104   1      #if(_AUDIO_SUPPORT == _ON)
+                  CAdjustAudioControl(_DISABLE);
+              #endif
+ 107   1      
+ 108   1          CScalerInitialDisplayInterface();
+ 109   1      
+ 110   1          CScalerInitialDisplayOutput();
+ 111   1          CModeSetFreeRun();
+ 112   1      
+ 113   1          CScalerEnableDisplayTiming();
+ 114   1      
+ 115   1          if(GET_POWERSTATUS())
+ 116   1          {
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 3   
+
+ 117   2              // OSD power up initial
+ 118   2              CScalerCodeW(tOSD_POWERUP_INITIAL);
+ 119   2      
+ 120   2              CAdjustTMDSErrorCorrectionOn();
+ 121   2              CAdjustColorPalette(tPALETTE_0);
+ 122   2              CAdjustSRGB();
+ 123   2              //CAdjustGamma(_COMPACT_GAMMA_NORMAL_TABLE, tGAMMA_COMPACT1, tGAMMA_COMPACT1, tGAMMA_COMPACT1);
+ 124   2              //CAdjustGamma(_FULL_GAMMA_COMPRESS_TABLE, tGAMMA_TABLE_RED, tGAMMA_TABLE_GREEN, tGAMMA_TABLE_BLUE
+             -);
+ 125   2      
+ 126   2      #if(_GAMMA_FUNCTION == _ON)
+              
+                      // V015 System Patch Note (7) Modify 20100630 Start
+                      // Patch Reason : New EEPROM emulation process.
+                      /*
+              #if(_SCALER_TYPE == _RTD2472D)
+                      CAdjustGamma(_FULL_GAMMA_NORMAL_TABLE, tGAMMA_TABLE_RED, tGAMMA_TABLE_GREEN, tGAMMA_TABLE_BLUE);
+              #elif((_SCALER_TYPE == _RTD2545LR) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                      CAdjustLUTGamma(tLUTGAMMA_TABLE_RED, tLUTGAMMA_TABLE_GREEN, tLUTGAMMA_TABLE_BLUE);//20080422 +Shar
+             -on
+              #else
+                  No Setting !!
+              
+              #endif//End of #if(_SCALER_TYPE == _RTD2472D)
+                      */
+              #if(_SCALER_TYPE == _RTD2472D)
+              
+              #if((_MEMORY_LOCATION == _FLASH) && (_GAMMA_LUT_LOCATION == _GAMMA_LUT_LOCATION_FLASH))
+                      CAdjustGamma(_FULL_GAMMA_NORMAL_TABLE, _MCU_FLASH_GAMMA_LUT_R, _MCU_FLASH_GAMMA_LUT_G, _MCU_FLASH_
+             -GAMMA_LUT_B);
+              #else
+                      CAdjustGamma(_FULL_GAMMA_NORMAL_TABLE, tGAMMA_TABLE_RED, tGAMMA_TABLE_GREEN, tGAMMA_TABLE_BLUE);
+              #endif
+              
+              #elif((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+              
+              #if((_MEMORY_LOCATION == _FLASH) && (_GAMMA_LUT_LOCATION == _GAMMA_LUT_LOCATION_FLASH))
+                      CAdjustLUTGamma(_MCU_FLASH_GAMMA_LUT_R, _MCU_FLASH_GAMMA_LUT_G, _MCU_FLASH_GAMMA_LUT_B);
+              #else
+                      CAdjustLUTGamma(tLUTGAMMA_TABLE_RED, tLUTGAMMA_TABLE_GREEN, tLUTGAMMA_TABLE_BLUE);
+              #endif
+              
+              #elif(_SCALER_TYPE == _RTD2545LR)
+                      CAdjustLUTGamma(tLUTGAMMA_TABLE_RED, tLUTGAMMA_TABLE_GREEN, tLUTGAMMA_TABLE_BLUE);
+              
+              #else
+              
+                  No Setting !!
+              
+              #endif//End of #if(_SCALER_TYPE == _RTD2472D)
+                      // V015 System Patch Note (7) Modify 20100630 End
+              
+              
+              #endif// End of #if(_GAMMA_FUNCTION == _ON)
+ 168   2      #if _DEBUG_MESSAGE_SUPPORT
+ 169   2      CDebugMessage("   UpdateGammaBlock(stConBriData.Dicom);", stConBriData.Dicom);
+ 170   2      CDebugMessage("   UpdateGammaBlock(stConBriData.Gamma);", stConBriData.Gamma);
+ 171   2      #endif
+ 172   2      
+ 173   2        //      UpdateGammaBlock(3);
+ 174   2        /*
+ 175   2           if(!(stConBriData.Gamma=0)||(stConBriData.Gamma==4))
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 4   
+
+ 176   2              Adjust_LUTtable(stConBriData.Gamma-1);
+ 177   2           else
+ 178   2              {
+ 179   2              if(stConBriData.Dicom<=7)
+ 180   2                       Adjust_LUTtable(10);
+ 181   2              else
+ 182   2                      Adjust_LUTtable(stConBriData.Dicom-1);
+ 183   2      
+ 184   2               }
+ 185   2      */
+ 186   2      
+ 187   2      #if(_SCALER_TYPE == _RTD2472D)
+ 188   2      
+ 189   2              if(_DISP_BIT_MODE == _DISP_18_BIT)          //Hudson V008_20080806 add Temporal Dithering offset t
+             -able !!
+ 190   2              {
+ 191   3                  CAdjustDither(tDITHER_SEQ_TABLE_0, tDITHER_TABLE_10_TO_6, tDITHER_TEMPOFFSET_TABLE);
+ 192   3              }
+ 193   2      
+ 194   2              else if(_DISP_BIT_MODE == _DISP_24_BIT)     //Hudson V008_20080806 add Temporal Dithering offset t
+             -able !!
+ 195   2              {
+ 196   3                  CAdjustDither(tDITHER_SEQ_TABLE_0, tDITHER_TABLE_10_TO_8_D_DOMAIN, tDITHER_TEMPOFFSET_TABLE);
+ 197   3              }
+ 198   2      
+ 199   2      #elif((_SCALER_TYPE == _RTD2545LR) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+              
+                      if(_DISP_BIT_MODE == _DISP_18_BIT)          //Hudson V008_20080806 add Temporal Dithering offset t
+             -able !!
+                      {
+                          CAdjustDither(tDITHER_SEQ_TABLE_0, tDITHER_TABLE_10_TO_6, tDITHER_TEMPOFFSET_TABLE, _OUTPUT_DI
+             -THER);
+                      }
+              
+                      else if(_DISP_BIT_MODE == _DISP_24_BIT)     //Hudson V008_20080806 add Temporal Dithering offset t
+             -able !!
+                      {
+                          CAdjustDither(tDITHER_SEQ_TABLE_0, tDITHER_TABLE_10_TO_8_D_DOMAIN, tDITHER_TEMPOFFSET_TABLE, _
+             -OUTPUT_DITHER);
+                      }
+              
+              #else
+              
+                  No Setting !!
+              
+              #endif  //End of #if(_SCALER_TYPE == _RTD2472D)
+ 216   2              CScalerSetBit(_IPH_ACT_WID_H_16, ~(_BIT6 | _BIT5 | _BIT4), ((_ADC_INPUT_SWAP_RG << 6) | (_ADC_INPU
+             -T_SWAP_RB << 5) | (_ADC_INPUT_SWAP_GB << 4)));
+ 217   2              CAdjustBrightness(stConBriData.Brightness);
+ 218   2              CAdjustContrast(stConBriData.Contrast);
+ 219   2      
+ 220   2      #if (_SRGB_COLOR_ENHANCE == _ON)
+                      CAdjustSaturationHue(stOsdUserData.Hue, _FALSE);
+                      CAdjustSaturationHue(stOsdUserData.Sat, _TRUE);
+              #endif
+ 224   2      
+ 225   2      #if(_OD_SUPPORT == _ON)
+                      CMemoryLoadODLUT(_OD_TABLE_COMMON);
+              #endif
+ 228   2      
+ 229   2      #if(_HDCP_SUPPORT == _ON) // Hdcp compatibility
+ 230   2              CAdjustHDCP();
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 5   
+
+ 231   2      #endif
+ 232   2      
+ 233   2          }
+ 234   1          else
+ 235   1          {
+ 236   2              CPowerPanelOff();
+ 237   2              CScalerDisableDisplayTiming();
+ 238   2              CPowerDPLLOff();
+ 239   2              CPowerTMDSOff();
+ 240   2              CPowerM2PLLOff();
+ 241   2      #if((_SCALER_TYPE == _RTD2545LR) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                      CPowerMPLLOff();
+              #endif
+ 244   2              CScalerSetByte(_HOST_CTRL_01, 0x46);
+ 245   2      
+ 246   2          }
+ 247   1      
+ 248   1      }
+ 249          
+ 250          //--------------------------------------------------
+ 251          // Description  : Initial display interface for TTL and LVDS
+ 252          // Input Value  : None
+ 253          // Output Value : None
+ 254          //--------------------------------------------------
+ 255          void CScalerInitialDisplayInterface(void)
+ 256          {
+ 257   1      #if(_PANEL_STYLE == _PANEL_TTL)
+                  CScalerCodeW(tTTL_INITIAL);
+              #endif // End of #if(_PANEL_STYLE == _PANEL_TTL)
+ 260   1      
+ 261   1      #if(_PANEL_STYLE == _PANEL_LVDS)
+ 262   1          CScalerCodeW(tLVDS_INITIAL);
+ 263   1      
+ 264   1      #endif // End of #if(_PANEL_STYLE == _PANEL_LVDS)
+ 265   1      
+ 266   1      #if(_PANEL_STYLE == _PANEL_RSDS)
+                  CScalerCodeW(tLVDS_INITIAL);
+                  CScalerCodeW(tRSDS_INITIAL);
+              
+              //    CScalerSetDataPortByte(_TCON_ADDR_PORT_8B, _TCON_RSDS_OUTPUT_CTRL0_C0, 0x40 | ( (_RSDS_GC_SWAP << 2)
+             - | (_RSDS_HL_SWAP << 1) | (_RSDS_PN_SWAP) ));
+                  CScalerSetDataPortByte(_TCON_ADDR_PORT_8B, _TCON_RSDS_OUTPUT_CTRL0_C0, 0x92);
+                  CScalerSetDataPortBit(_DISP_ACCESS_PORT_2A, _DISP_TIMING_20, ~_BIT0, _BIT0);
+              
+              #endif // End of #if(_PANEL_STYLE == _PANEL_RSDS)
+ 275   1      }
+ 276          
+ 277          //--------------------------------------------------
+ 278          // Description  : Initial display output from Panel.h settings
+ 279          // Input Value  : None
+ 280          // Output Value : None
+ 281          //--------------------------------------------------
+ 282          void CScalerInitialDisplayOutput(void)
+ 283          {
+ 284   1       // Display signal control settings
+ 285   1          CScalerSetBit(_VDISP_CTRL_28, ~(_BIT4 | _BIT2), (_DISP_BIT_MODE << 4) | (_DISP_OUTPUT_PORT << 2));
+ 286   1          CScalerSetByte(_VDISP_SIGINV_29, ( (_DHS_MASK << 7) | (_DISP_EO_SWAP << 6) | (_DISP_RB_SWAP << 5) | (_
+             -DISP_ML_SWAP << 4) | (_DISP_SKEW << 3) | (_DISP_DVS_INVERT << 2) | (_DISP_DHS_INVERT << 1) | (_DISP_DEN_INVERT)));
+ 287   1      
+ 288   1      #if(_PANEL_TYPE == _AU_LVDS_23_WUXGA)
+                  CScalerSetBit(_VDISP_SIGINV_29, ~(_BIT2 | _BIT1 | _BIT0), (_BIT2 | _BIT1));
+              #endif
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 6   
+
+ 291   1      
+ 292   1      }
+ 293          
+ 294          //--------------------------------------------------
+ 295          // Description  : Enable display output
+ 296          // Input Value  : None
+ 297          // Output Value : None
+ 298          //--------------------------------------------------
+ 299          void CScalerEnableDisplayOutput(void)
+ 300          {
+ 301   1          CScalerGetDataPortByte(_TCON_ADDR_PORT_8B, _TCON_CTRL0_00, 1, pData, _NON_AUTOINC);
+ 302   1          CScalerSetDataPortByte(_TCON_ADDR_PORT_8B, _TCON_CTRL0_00, ((pData[0] & ~(_BIT1 | _BIT0)) | (_PANEL_ST
+             -YLE & (_BIT1 | _BIT0))));
+ 303   1      }
+ 304          
+ 305          /*
+ 306          //--------------------------------------------------
+ 307          // Description  : Disable display output
+ 308          // Input Value  : None
+ 309          // Output Value : None
+ 310          //--------------------------------------------------
+ 311          void CScalerDisableDisplayOutput(void)
+ 312          {
+ 313              CScalerGetDataPortByte(_TCON_ADDR_PORT_8B, _TCON_CTRL0_00, 1, pData, _NON_AUTOINC);
+ 314              CScalerSetDataPortByte(_TCON_ADDR_PORT_8B, _TCON_CTRL0_00, (pData[0] & ~_BIT3));
+ 315          }
+ 316          */
+ 317          //--------------------------------------------------
+ 318          // Description  : Enable display
+ 319          // Input Value  : None
+ 320          // Output Value : None
+ 321          //--------------------------------------------------
+ 322          void CScalerEnableDisplayTiming(void)
+ 323          {
+ 324   1          CScalerSetBit(_VDISP_CTRL_28, ~(_BIT6 | _BIT1), _BIT1);
+ 325   1          CScalerSetBit(_VDISP_CTRL_28, ~_BIT0, _BIT0);
+ 326   1      
+ 327   1          CScalerSetBit(_VDISP_CTRL_28, ~_BIT7, _BIT7);
+ 328   1          CScalerSetBit(_VDISP_CTRL_28, ~_BIT7, 0x00);
+ 329   1      }
+ 330          
+ 331          //--------------------------------------------------
+ 332          // Description  : Disable display
+ 333          // Input Value  : None
+ 334          // Output Value : None
+ 335          //--------------------------------------------------
+ 336          void CScalerDisableDisplayTiming(void)
+ 337          {
+ 338   1      
+ 339   1      #if(_PANEL_STYLE == _PANEL_TTL)
+              
+                  CScalerSetBit(_VDISP_SIGINV_29, ~(_BIT2 | _BIT1 | _BIT0), 0x00);
+              
+              #endif
+ 344   1      
+ 345   1          CScalerSetBit(_VDISP_CTRL_28, ~(_BIT6 | _BIT1), _BIT6);
+ 346   1          CScalerSetBit(_VDISP_CTRL_28, ~_BIT0, 0x00);
+ 347   1      }
+ 348          
+ 349          //----------------------------------------------------------------------------------------------------
+ 350          // Scaler communication basic function
+ 351          //----------------------------------------------------------------------------------------------------
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 7   
+
+ 352          #if(_MCU_TYPE != _REALTEK_EMBEDDED)
+              #if(_SCALER_TYPE == _RTD2545LR)
+              void CScalerSendReadStop(void)
+              {
+                  SETSCALERSDIO3(_HIGH);
+                  SETSCALERSDIO3(_LOW);
+                  SETSCALERSDIO3(_HIGH);
+              
+                  SETSCALERSCLK();
+              }
+              
+              void CScalerSendWriteStop(void)
+              {
+                  CLRSCALERSCLK();
+                  SETSCALERSCLK();
+              
+                  SETSCALERSCLK();
+                  SETSCALERSDIO3(_HIGH);
+                  SETSCALERSDIO3(_LOW);
+                  SETSCALERSDIO3(_HIGH);
+              }
+              void CScalerSendAddr(BYTE ucAddr, bit bReadWrite, bit bAutoInc)
+              {
+                  SETSCALERSCLK();
+                  SETSCALERSDIO3(_HIGH);
+                  SETSCALERSDIO3(_LOW);
+                  SETSCALERSDIO3(_HIGH);
+              
+                  CScalerSendByte(ucAddr);
+              
+                  SETSCALERSDIO3(bReadWrite);
+                  CLRSCALERSCLK();
+                  SETSCALERSDIO3(bAutoInc);
+                  SETSCALERSCLK();
+              
+                  SETSCALERSDIO3(_HIGH);
+              }
+              
+              #else
+              void CScalerSendReadStop(void)
+              {
+                  SETSCALERSCLK();
+                  SETSCALERSCSB();
+              }
+              
+              void CScalerSendWriteStop(void)
+              {
+                  CLRSCALERSCLK();
+                  SETSCALERSCLK();
+              
+                  SETSCALERSCLK();
+                  SETSCALERSCSB();
+              }
+              void CScalerSendAddr(BYTE ucAddr, bit bReadWrite, bit bAutoInc)
+              {
+                  CLRSCALERSCSB();
+              
+                  CScalerSendByte(ucAddr);
+              
+                  SETSCALERSDIO3(bReadWrite);
+                  CLRSCALERSCLK();
+                  SETSCALERSDIO3(bAutoInc);
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 8   
+
+                  SETSCALERSCLK();
+              
+                  SETSCALERSDIO3(_HIGH);
+              }
+              #endif  // End of #if(_SCALER_TYPE == _RTD2545LR)
+              
+              void CScalerSendByte(BYTE ucValue)
+              {
+                  SETSCALERSDIO3((bit)(ucValue & 0x01));
+                  CLRSCALERSCLK();
+                  SETSCALERSDIO3((bit)(ucValue & 0x02));
+                  SETSCALERSCLK();
+                  SETSCALERSDIO3((bit)(ucValue & 0x04));
+                  CLRSCALERSCLK();
+                  SETSCALERSDIO3((bit)(ucValue & 0x08));
+                  SETSCALERSCLK();
+                  SETSCALERSDIO3((bit)(ucValue & 0x10));
+                  CLRSCALERSCLK();
+                  SETSCALERSDIO3((bit)(ucValue & 0x20));
+                  SETSCALERSCLK();
+                  SETSCALERSDIO3((bit)(ucValue & 0x40));
+                  CLRSCALERSCLK();
+                  SETSCALERSDIO3((bit)(ucValue & 0x80));
+                  SETSCALERSCLK();
+              }
+              
+              void CScalerSETSCLK(void)
+              {
+                  SETSCALERSCLK();
+                  SETSCALERSCLK();
+                  SETSCALERSCLK();
+                  SETSCALERSCLK();
+                  SETSCALERSCLK();
+              }
+              
+              void CScalerCLRSCLK(void)
+              {
+                  CLRSCALERSCLK();
+                  CLRSCALERSCLK();
+                  CLRSCALERSCLK();
+                  CLRSCALERSCLK();
+                  CLRSCALERSCLK();
+              }
+              #if(_SCALER_TYPE == _RTD2545LR)
+              BYTE CScalerGetByte1(void)
+              {
+                  BYTE value = 0;
+              
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x01;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x02;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x04;
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 9   
+
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x08;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x10;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x20;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x40;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x80;
+                  }
+              
+                  CScalerCLRSCLK();
+              
+                  return value;
+              }
+              
+              BYTE CScalerGetByte2(void)
+              {
+                  BYTE value = 0;
+              
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x01;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x02;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x04;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x08;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x10;
+                  }
+                  CScalerCLRSCLK();
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 10  
+
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x20;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x40;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x80;
+                  }
+              
+                  CScalerSETSCLK();
+              
+                  return value;
+              }
+              #else
+              
+              BYTE CScalerGetByte(void)
+              {
+                  BYTE value = 0;
+              
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x01;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x02;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x04;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x08;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x10;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x20;
+                  }
+                  CScalerCLRSCLK();
+                  if(GETSCALERSDIO3())
+                  {
+                      value |= 0x40;
+                  }
+                  CScalerSETSCLK();
+                  if(GETSCALERSDIO3())
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 11  
+
+                  {
+                      value |= 0x80;
+                  }
+              
+                  return value;
+              }
+              
+              #endif
+              
+              #endif  // End of #if(_MCU_TYPE != _REALTEK_EMBEDDED)
+ 610          
+ 611          
+ 612          //--------------------------------------------------
+ 613          // Description  : Write a data array into registers of scaler
+ 614          // Input Value  : ucAddr    --> Start address of register
+ 615          //                ucLength  --> Numbers of data we want to write
+ 616          //                pArray    --> Pointer of the writing data array
+ 617          //                bAutoInc  --> Address auto increasing select
+ 618          // Output Value : None
+ 619          //--------------------------------------------------
+ 620          void CScalerWrite(BYTE ucAddr, WORD usLength, BYTE *pArray, bit bAutoInc)
+ 621          {
+ 622   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+ 623   1      
+ 624   1      #if(_DP_SUPPORT == _ON)
+                  g_ucRegAddrBackUp = ucAddr;
+              #endif
+ 627   1      
+ 628   1          if(usLength > 0)
+ 629   1          {
+ 630   2              if(bAutoInc)
+ 631   2              {
+ 632   3                  MCU_SCA_INF_CTRL_FFF3 |= 0x20;
+ 633   3              }
+ 634   2              else
+ 635   2              {
+ 636   3                  MCU_SCA_INF_CTRL_FFF3 &= 0xDF;
+ 637   3              }
+ 638   2      
+ 639   2              MCU_SCA_INF_ADDR_FFF4 = ucAddr;
+ 640   2      
+ 641   2              do
+ 642   2              {
+ 643   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 0;
+              #endif
+ 646   3                  MCU_SCA_INF_DATA_FFF5 = *pArray++;
+ 647   3      
+ 648   3      #if(_DP_SUPPORT == _ON)
+                          if(bAutoInc == _AUTOINC)
+                          {
+                              ucAddr++;
+                              g_ucRegAddrBackUp = ucAddr;
+                          }
+              #endif
+ 655   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 1;
+              #endif
+ 658   3      
+ 659   3              }while(--usLength);
+ 660   2          }
+ 661   1      
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 12  
+
+ 662   1      #else
+              
+                  if(usLength > 0)
+                  {
+                      CScalerSendAddr(ucAddr, _WRITE, bAutoInc);
+              
+                      do
+                      {
+                          CScalerSendByte(*pArray++);
+              
+                      }while(--usLength);
+              
+                      CScalerSendWriteStop();
+                  }
+              
+              #endif
+ 678   1      }
+ 679          
+ 680          //--------------------------------------------------
+ 681          // Description  : Read data from registers of scaler and put it into an reading data array
+ 682          // Input Value  : ucAddr    --> Start address of register
+ 683          //                ucLength  --> Numbers of data we want to read
+ 684          //                pArray    --> Pointer of the reading data array
+ 685          //                bAutoInc  --> Address auto increasing select
+ 686          // Output Value : None
+ 687          //--------------------------------------------------
+ 688          void CScalerRead(BYTE ucAddr, BYTE ucLength, BYTE *pArray, bit bAutoInc)
+ 689          {
+ 690   1          BYTE odd = 0;
+ 691   1      
+ 692   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+ 693   1      
+ 694   1      #if(_DP_SUPPORT == _ON)
+                      g_ucRegAddrBackUp = ucAddr;
+              #endif
+ 697   1      
+ 698   1          if(ucLength > 0)
+ 699   1          {
+ 700   2              if(bAutoInc)
+ 701   2              {
+ 702   3                  MCU_SCA_INF_CTRL_FFF3 |= 0x20;
+ 703   3              }
+ 704   2              else
+ 705   2              {
+ 706   3                  MCU_SCA_INF_CTRL_FFF3 &= 0xDF;
+ 707   3              }
+ 708   2      
+ 709   2              MCU_SCA_INF_ADDR_FFF4 = ucAddr;
+ 710   2      
+ 711   2      
+ 712   2              do
+ 713   2              {
+ 714   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 0;
+              #endif
+ 717   3                  *pArray++ = MCU_SCA_INF_DATA_FFF5;
+ 718   3      
+ 719   3      #if(_DP_SUPPORT == _ON)
+                          if(bAutoInc == _AUTOINC)
+                          {
+                              ucAddr++;
+                              g_ucRegAddrBackUp = ucAddr;
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 13  
+
+                          }
+              #endif
+ 726   3      
+ 727   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 1;
+              #endif
+ 730   3      
+ 731   3              }while(--ucLength);
+ 732   2          }
+ 733   1      
+ 734   1      #else
+              
+                  if(ucLength > 0)
+                  {
+                      CScalerSendAddr(ucAddr, _READ, bAutoInc);
+              
+                      do
+                      {
+              #if(_SCALER_TYPE == _RTD2545LR)
+                          *pArray++ = (odd == 0) ? CScalerGetByte1() : CScalerGetByte2();
+                          odd = odd ^ 0x01;
+              #else
+                          *pArray++ = CScalerGetByte();
+              #endif
+              
+                      }while(--ucLength);
+              
+                      CScalerSendReadStop();
+                  }
+              
+              #endif
+ 755   1      }
+ 756          
+ 757          //--------------------------------------------------
+ 758          // Description  : Write a data array into registers of scaler
+ 759          // Input Value  : ucAddr    --> Start address of register
+ 760          //                ucLength  --> Numbers of data we want to write
+ 761          //                pValue    --> Value we want to write
+ 762          //                bAutoInc  --> Address auto increasing select
+ 763          // Output Value : None
+ 764          //--------------------------------------------------
+ 765          void CScalerWriteAmount(BYTE ucAddr, WORD usLength, BYTE ucValue, bit bAutoInc)
+ 766          {
+ 767   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+ 768   1      
+ 769   1      #if(_DP_SUPPORT == _ON)
+                  g_ucRegAddrBackUp = ucAddr;
+              #endif
+ 772   1      
+ 773   1          if(usLength > 0)
+ 774   1          {
+ 775   2              if(bAutoInc)
+ 776   2              {
+ 777   3                  MCU_SCA_INF_CTRL_FFF3 |= 0x20;
+ 778   3              }
+ 779   2              else
+ 780   2              {
+ 781   3                  MCU_SCA_INF_CTRL_FFF3 &= 0xDF;
+ 782   3              }
+ 783   2      
+ 784   2              MCU_SCA_INF_ADDR_FFF4 = ucAddr;
+ 785   2      
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 14  
+
+ 786   2              do
+ 787   2              {
+ 788   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 0;
+              #endif
+ 791   3                  MCU_SCA_INF_DATA_FFF5 = ucValue;
+ 792   3      
+ 793   3      #if(_DP_SUPPORT == _ON)
+                          if(bAutoInc == _AUTOINC)
+                          {
+                              ucAddr++;
+                              g_ucRegAddrBackUp = ucAddr;
+                          }
+              #endif
+ 800   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 1;
+              #endif
+ 803   3      
+ 804   3              }while(--usLength);
+ 805   2          }
+ 806   1      
+ 807   1      #else
+              
+                  if(usLength > 0)
+                  {
+                      CScalerSendAddr(ucAddr, _WRITE, bAutoInc);
+              
+                      do
+                      {
+                          CScalerSendByte(ucValue);
+              
+                      }while(--usLength);
+              
+                      CScalerSendWriteStop();
+                  }
+              
+              #endif
+ 823   1      }
+ 824          
+ 825          //--------------------------------------------------
+ 826          // Description  : Set the value into selected register
+ 827          // Input Value  : ucAddr    --> Address of register
+ 828          //                ucValue   --> Value we want to set
+ 829          // Output Value : None
+ 830          //--------------------------------------------------
+ 831          void CScalerSetByte(BYTE ucAddr, BYTE ucValue)
+ 832          {
+ 833   1          CScalerWrite(ucAddr, 1, &ucValue, _AUTOINC);
+ 834   1      }
+ 835          
+ 836          //--------------------------------------------------
+ 837          // Description  : Set the value into selected register in data port
+ 838          // Input Value  : ucAddr    --> Access Port Address of register
+ 839          //                ucValue1  --> Data Port Value we want to set
+ 840          //                ucValue2  --> Data Value we want to set
+ 841          // Output Value : None
+ 842          //--------------------------------------------------
+ 843          void CScalerSetDataPortByte(BYTE ucAddr, BYTE ucValue1, BYTE ucValue2)
+ 844          {
+ 845   1          if((ucAddr == _SU_ACCESS_PORT_33) || (ucAddr == _HW_ACCESS_PORT_60)
+ 846   1          || (ucAddr == _CB_ACCESS_PORT_64) || (ucAddr == _PC_ACCESS_PORT_9A))
+ 847   1          {
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 15  
+
+ 848   2              CScalerSetByte(ucAddr, 0x80);
+ 849   2              ucValue1 = ucValue1 | 0x80;
+ 850   2          }
+ 851   1      
+ 852   1          CScalerWrite(ucAddr, 1, &ucValue1, _AUTOINC);
+ 853   1          CScalerWrite(ucAddr + 1, 1, &ucValue2, _AUTOINC);
+ 854   1          CScalerSetByte(ucAddr, 0x00);
+ 855   1      }
+ 856          
+ 857          //--------------------------------------------------
+ 858          // Description  : Get bytes from selected register in data port
+ 859          // Input Value  : ucAddr    --> Access Port Address of register
+ 860          //                ucValue   --> Data Port Address we want to Get
+ 861          //                ucLength  --> Numbers of data we want to read
+ 862          //                pArray    --> Pointer of the reading data array
+ 863          //                bAutoInc  --> Address auto increasing select
+ 864          // Output Value : None
+ 865          //--------------------------------------------------
+ 866          void CScalerGetDataPortByte(BYTE ucAddr, BYTE ucValue, BYTE ucLength, BYTE *pArray, bit bAutoInc)
+ 867          {
+ 868   1          if(ucLength > 0)
+ 869   1          {
+ 870   2              if((ucAddr == _SU_ACCESS_PORT_33) || (ucAddr == _HW_ACCESS_PORT_60)
+ 871   2              || (ucAddr == _CB_ACCESS_PORT_64) || (ucAddr == _PC_ACCESS_PORT_9A))
+ 872   2              {
+ 873   3                  CScalerSetByte(ucAddr, 0x80);
+ 874   3                  ucValue = ucValue | 0x80;
+ 875   3              }
+ 876   2      
+ 877   2              CScalerSetByte(ucAddr, ucValue);
+ 878   2              CScalerRead(ucAddr + 1, ucLength, pArray, bAutoInc);
+ 879   2          }
+ 880   1      }
+ 881          
+ 882          //--------------------------------------------------
+ 883          // Description  : Set some bits of selected register
+ 884          // Input Value  : ucAddr    --> Address of register
+ 885          //                ucAnd     --> & operation
+ 886          //                ucOr      --> | operation
+ 887          // Output Value : None
+ 888          //--------------------------------------------------
+ 889          void CScalerSetBit(BYTE ucAddr, BYTE ucAnd, BYTE ucOr)
+ 890          {
+ 891   1          BYTE value;
+ 892   1      
+ 893   1          CScalerRead(ucAddr, 1, &value, _AUTOINC);
+ 894   1      
+ 895   1          value = (value & ucAnd) | ucOr;
+ 896   1      
+ 897   1          CScalerWrite(ucAddr, 1, &value, _AUTOINC);
+ 898   1      }
+ 899          
+ 900          //--------------------------------------------------
+ 901          // Description  : Set some bits of selected register in data port
+ 902          // Input Value  : ucAddr    --> Access Port Address of register
+ 903          //                ucValue   --> Data Port Value we want to set
+ 904          //                ucAnd     --> & operation
+ 905          //                ucOr      --> | operation
+ 906          // Output Value : None
+ 907          //--------------------------------------------------
+ 908          void CScalerSetDataPortBit(BYTE ucAddr, BYTE ucValue, BYTE ucAnd, BYTE ucOr)
+ 909          {
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 16  
+
+ 910   1          BYTE value;
+ 911   1      
+ 912   1          if((ucAddr == _SU_ACCESS_PORT_33) || (ucAddr == _HW_ACCESS_PORT_60)
+ 913   1          || (ucAddr == _CB_ACCESS_PORT_64) || (ucAddr == _PC_ACCESS_PORT_9A))
+ 914   1          {
+ 915   2              CScalerSetByte(ucAddr, 0x80);
+ 916   2              ucValue = ucValue | 0x80;
+ 917   2          }
+ 918   1      
+ 919   1          CScalerWrite(ucAddr, 1, &ucValue, _AUTOINC);
+ 920   1          CScalerRead(ucAddr + 1, 1, &value, _AUTOINC);
+ 921   1      
+ 922   1          value = (value & ucAnd) | ucOr;
+ 923   1      
+ 924   1          if((ucAddr == _SU_ACCESS_PORT_33) || (ucAddr == _HW_ACCESS_PORT_60)
+ 925   1          || (ucAddr == _CB_ACCESS_PORT_64) || (ucAddr == _PC_ACCESS_PORT_9A))
+ 926   1          {
+ 927   2              CScalerSetByte(ucAddr, 0x80);
+ 928   2              ucValue = ucValue | 0x80;
+ 929   2          }
+ 930   1      
+ 931   1          CScalerWrite(ucAddr, 1, &ucValue, _AUTOINC);
+ 932   1          CScalerWrite(ucAddr + 1, 1, &value, _AUTOINC);
+ 933   1          CScalerSetByte(ucAddr, 0x00);
+ 934   1      }
+ 935          
+ 936          //--------------------------------------------------
+ 937          // Description  : Get bits from selected register
+ 938          // Input Value  : ucAddr    --> Address of register
+ 939          //                ucAnd     --> & operation
+ 940          // Output Value : Value after & operation
+ 941          //--------------------------------------------------
+ 942          BYTE CScalerGetBit(BYTE ucAddr, BYTE ucAnd)
+ 943          {
+ 944   1          BYTE value;
+ 945   1      
+ 946   1          CScalerRead(ucAddr, 1, &value, _AUTOINC);
+ 947   1      
+ 948   1          return (value & ucAnd);
+ 949   1      }
+ 950          
+ 951          /*
+ 952          #if(_ADC_OFFSET_ADJUSTING == _ADJUST_BY_HW_OFF_LINE)
+ 953          //--------------------------------------------------
+ 954          // Description  : Get bits from selected register in data port
+ 955          // Input Value  : ucAddr    --> Access Port Address of register
+ 956          //                ucValue   --> Data Port Value we want to set
+ 957          //                ucAnd     --> & operation
+ 958          // Output Value : Value after & operation
+ 959          //--------------------------------------------------
+ 960          BYTE CScalerGetDataPortBit(BYTE ucAddr, BYTE ucValue, BYTE ucAnd)
+ 961          {
+ 962              BYTE value;
+ 963          
+ 964              if((ucAddr == _SU_ACCESS_PORT_33) || (ucAddr == _HW_ACCESS_PORT_60)
+ 965              || (ucAddr == _CB_ACCESS_PORT_64) || (ucAddr == _PC_ACCESS_PORT_9A))
+ 966              {
+ 967                  CScalerSetByte(ucAddr, 0x80);
+ 968                  ucValue = ucValue | 0x80;
+ 969              }
+ 970          
+ 971              CScalerWrite(ucAddr, 1, &ucValue, _AUTOINC);
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 17  
+
+ 972              CScalerRead(ucAddr + 1, 1, &value, _AUTOINC);
+ 973          
+ 974              return (value & ucAnd);
+ 975          }
+ 976          #endif  // End of #if(_ADC_OFFSET_ADJUSTING == _ADJUST_BY_HW_OFF_LINE)
+ 977          */
+ 978          
+ 979          //--------------------------------------------------
+ 980          // Description  : Write a table into scaler
+ 981          // Input Value  : pArray    --> Selected table which contains numbers, address auto increasing information
+             -, address of registers and values
+ 982          // Output Value : None
+ 983          //--------------------------------------------------
+ 984          void CScalerCodeW(BYTE code *pArray)
+ 985          {
+ 986   1          BYTE length = 0;
+ 987   1      
+ 988   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+ 989   1      
+ 990   1          do
+ 991   1          {
+ 992   2              if((*pArray & 0xfc) == 0)
+ 993   2              {
+ 994   3                  return;
+ 995   3              }
+ 996   2      
+ 997   2              length = *pArray - 3;
+ 998   2      
+ 999   2              if((*(pArray + 1)) == _BURST)
+1000   2              {
+1001   3                  MCU_SCA_INF_CTRL_FFF3 |= 0x20;
+1002   3      
+1003   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 0;
+              #endif
+1006   3      
+1007   3                  MCU_SCA_INF_ADDR_FFF4 = *(pArray + 2);
+1008   3      
+1009   3      #if(_DP_SUPPORT == _ON)
+                          g_ucRegAddrBackUp = *(pArray + 2);
+              #endif
+1012   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 1;
+              #endif
+1015   3      
+1016   3                  pArray += 3;
+1017   3      
+1018   3                  do
+1019   3                  {
+1020   4                      MCU_SCA_INF_DATA_FFF5 = *pArray;
+1021   4                  }while(--length);
+1022   3      
+1023   3                  pArray++;
+1024   3              }
+1025   2              else if((*(pArray + 1) == _AUTOINC) || (*(pArray + 1) == _NON_AUTOINC))
+1026   2              {
+1027   3      
+1028   3                  if(*(pArray + 1) == _NON_AUTOINC)
+1029   3                  {
+1030   4                      MCU_SCA_INF_CTRL_FFF3 |= 0x20;
+1031   4                  }
+1032   3                  else
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 18  
+
+1033   3                  {
+1034   4                      MCU_SCA_INF_CTRL_FFF3 &= 0xDF;
+1035   4                  }
+1036   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 0;
+              #endif
+1039   3                  MCU_SCA_INF_ADDR_FFF4 = *(pArray + 2);
+1040   3      
+1041   3      #if(_DP_SUPPORT == _ON)
+                          g_ucRegAddrBackUp = *(pArray + 2);
+              #endif
+1044   3      #if(_DP_SUPPORT == _ON)
+                          EX0 = 1;
+              #endif
+1047   3                  pArray += 3;
+1048   3      
+1049   3                  do
+1050   3                  {
+1051   4                      MCU_SCA_INF_DATA_FFF5 = *pArray++;
+1052   4                  }while(--length);
+1053   3              }
+1054   2      
+1055   2          }while(_TRUE);
+1056   1      
+1057   1      #else
+              
+              
+                  do
+                  {
+                      if((*pArray & 0xfc) == 0)
+                      {
+                          return;
+                      }
+              
+                      length = *pArray - 3;
+              
+                      if((*(pArray + 1)) == _BURST)
+                      {
+                          CScalerSendAddr(*(pArray + 2), _WRITE, _NON_AUTOINC);
+              
+                          pArray += 3;
+              
+                          do
+                          {
+                              CScalerSendByte(*pArray);
+              
+                          }while(--length);
+              
+                          pArray++;
+                      }
+                      else if((*(pArray + 1) == _AUTOINC) || (*(pArray + 1) == _NON_AUTOINC))
+                      {
+                          CScalerSendAddr(*(pArray + 2), _WRITE, *(pArray + 1));
+              
+                          pArray += 3;
+              
+                          do
+                          {
+                              CScalerSendByte(*pArray++);
+              
+                          }while(--length);
+              
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 19  
+
+                      }
+              
+                      CScalerSendWriteStop();
+              
+                  }while(_TRUE);
+              
+              #endif  // End of #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+1102   1      }
+1103          
+1104          #if(_LOAD_FONT_TYPE == _HARD_WARE)
+1105          //--------------------------------------------------
+1106          // Description  : Load OSD font into OSD SRAM
+1107          // Input Value  : pArray    --> Font table
+1108          //                usOffset  --> Offset of font base start address
+1109          // Output Value : None
+1110          //--------------------------------------------------
+1111          void CScalerLoadHardwareVLCFont(BYTE *pArray, WORD usOffset)
+1112          {
+1113   1          WORD num = 0;
+1114   1      
+1115   1      #if(_OSD_ROTATE_FUCTION == _ON)
+                  if(GET_ROTATE_STATUS())
+                  {
+                      num = 0x85;
+                  }
+                  else
+              #endif
+1122   1              num = 0x00;
+1123   1      
+1124   1          CScalerSetByte(_OSD_ADDR_MSB_90, 0x80);          // Byte2
+1125   1          CScalerSetByte(_OSD_ADDR_LSB_91, 0x03);          // Address : 003h
+1126   1          CScalerSetByte(_OSD_DATA_PORT_92, (BYTE)num);    // CCW swap, Rotation
+1127   1      
+1128   1      
+1129   1          CScalerSetByte(_OSD_ADDR_MSB_90, 0xc0);
+1130   1          CScalerSetByte(_OSD_ADDR_LSB_91, 0x05);
+1131   1          CScalerWrite(_OSD_DATA_PORT_92, 8, pArray, _NON_AUTOINC);
+1132   1      
+1133   1          num = ((WORD)*(pArray + 8) << 8) | *(pArray + 9);
+1134   1      
+1135   1      #if(_OSD_ROTATE_FUCTION == _ON)
+                  if(GET_ROTATE_STATUS())
+                  {
+                      usOffset = usOffset * 12;
+                      usOffset += _OSD_FONT_START_POSITION_ROTATE;
+                  }
+                  else
+              #endif
+1143   1          {
+1144   2              usOffset = usOffset * 9;
+1145   2              usOffset += _OSD_FONT_START_POSITION;
+1146   2          }
+1147   1      
+1148   1          CScalerSetByte(_OSD_ADDR_MSB_90, 0x80);
+1149   1          CScalerSetByte(_OSD_ADDR_LSB_91, 0x07);
+1150   1          CScalerSetByte(_OSD_DATA_PORT_92, 0x01);
+1151   1      
+1152   1          if(usOffset > 4095)
+1153   1          {
+1154   2              CScalerSetBit(_OSD_SCRAMBLE_93, ~_BIT3, _BIT3);
+1155   2          }
+1156   1          else
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 20  
+
+1157   1          {
+1158   2              CScalerSetBit(_OSD_SCRAMBLE_93, ~_BIT3, 0x00);
+1159   2          }
+1160   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+1161   1      
+1162   1          MCU_SCA_INF_CTRL_FFF3 &= 0xDF;
+1163   1      
+1164   1      #if(_DP_SUPPORT == _ON)
+                  g_ucRegAddrBackUp = _OSD_ADDR_MSB_90;
+              #endif
+1167   1      
+1168   1          MCU_SCA_INF_ADDR_FFF4 = _OSD_ADDR_MSB_90;
+1169   1          MCU_SCA_INF_DATA_FFF5 = (HIBYTE(usOffset) & 0x000f) | 0xd0;
+1170   1          MCU_SCA_INF_DATA_FFF5 = LOBYTE(usOffset);
+1171   1      
+1172   1          pArray += 10;
+1173   1      
+1174   1          MCU_SCA_INF_CTRL_FFF3 |= 0x20;
+1175   1      
+1176   1      #if(_DP_SUPPORT == _ON)
+                  g_ucRegAddrBackUp = _OSD_DATA_PORT_92;
+              #endif
+1179   1      
+1180   1          MCU_SCA_INF_ADDR_FFF4 = _OSD_DATA_PORT_92;
+1181   1      
+1182   1          for(usOffset = 0; usOffset < num; usOffset++)
+1183   1          {
+1184   2              MCU_SCA_INF_DATA_FFF5 = *pArray++;
+1185   2          }
+1186   1      
+1187   1      #else
+              
+                  CScalerSendAddr(_OSD_ADDR_MSB_90, _WRITE, _AUTOINC);
+                  CScalerSendByte((HIBYTE(usOffset) & 0x000f) | 0xd0);
+                  CScalerSendByte(LOBYTE(usOffset));
+                  CScalerSendWriteStop();
+              
+                  pArray += 10;
+              
+                  CScalerSendAddr(_OSD_DATA_PORT_92, _WRITE, _NON_AUTOINC);
+              
+                  for(usOffset = 0; usOffset < num; usOffset++)
+                  {
+                      CScalerSendByte(*pArray++);
+                  }
+              
+                  CScalerSendWriteStop();
+              
+              #endif
+1206   1          CScalerSetBit(_OSD_SCRAMBLE_93, ~_BIT3, 0x00);
+1207   1      
+1208   1          CScalerSetByte(_OSD_ADDR_MSB_90, 0x80);
+1209   1          CScalerSetByte(_OSD_ADDR_LSB_91, 0x07);
+1210   1          CScalerSetByte(_OSD_DATA_PORT_92, 0x00);
+1211   1      
+1212   1      #if(_OSD_ROTATE_FUCTION == _ON)
+                  CScalerSetByte(_OSD_ADDR_MSB_90, 0x80);
+                  CScalerSetByte(_OSD_ADDR_LSB_91, 0x03);
+                  CScalerSetByte(_OSD_DATA_PORT_92, ((BYTE)GET_ROTATE_STATUS()));
+              #endif
+1217   1      
+1218   1      }
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 21  
+
+1219          #endif  // End of #if(_LOAD_FONT_TYPE == _HARD_WARE)
+1220          
+1221          #if(_LOAD_FONT_TYPE == _SOFT_WARE)
+              //--------------------------------------------------
+              // Description  : Load OSD font into OSD SRAM
+              // Input Value  : pArray    --> Font table
+              //                usOffset  --> Offset of font base start address
+              //                usLength  --> Font amounts we want to load (unit in 1 bit font)
+              //                ucPar     --> Choose normal or compress font table
+              // Output Value : None
+              //--------------------------------------------------
+              void CScalerLoadFont(BYTE *pArray, WORD usOffset, WORD usLength, BYTE ucPar)
+              {
+                  BYTE temp0, temp1, temp2;
+              
+                  if(usLength == 0)
+                  {
+                      return;
+                  }
+              
+                  usOffset = usOffset * 9;
+                  usOffset += _OSD_FONT_START_POSITION;
+              
+                  if(usOffset > 4095)
+                  {
+                      CScalerSetBit(_OSD_SCRAMBLE_93, ~_BIT3, _BIT3);
+                  }
+              
+                  CScalerSetByte(_OSD_ADDR_MSB_90, ((HIBYTE(usOffset) & 0x000f) | 0xd0));
+                  CScalerSetByte(_OSD_ADDR_LSB_91, (LOBYTE(usOffset)));
+              
+                  if(ucPar == _COMPRESS_FONT)
+                  {
+                      ucVLDCnt = 0;
+                      ucVLDTemp = 0;
+                      pvldarray = (pArray + 16);
+              
+                      for(temp0 = 0; temp0 < 16; temp0++)
+                      {
+                          pData[temp0] = *(pArray + temp0);
+                      }
+                  }
+              
+                  do
+                  {
+                      for(usOffset = 0; usOffset < 9; usOffset++)
+                      {
+                          if(ucPar == _COMPRESS_FONT)
+                          {
+                              temp0 = CScalerGetVLD() << 4;
+                              temp0 |= CScalerGetVLD();
+                              temp1 = CScalerGetVLD() << 4;
+                              temp1 |= CScalerGetVLD();
+                              temp2 = CScalerGetVLD() << 4;
+                              temp2 |= CScalerGetVLD();
+                          }
+                          else
+                          {
+                              temp0 = *pArray++;
+                              temp1 = *pArray++;
+                              temp2 = *pArray++;
+                          }
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 22  
+
+              
+                          CScalerSetByte(_OSD_DATA_PORT_92, ((temp1 << 4) | (temp2 & 0x0f)));
+                          CScalerSetByte(_OSD_DATA_PORT_92, ((temp2 & 0xf0) | (temp0 & 0x0f)));
+                          CScalerSetByte(_OSD_DATA_PORT_92, ((temp0 & 0xf0) | (temp1 >> 4)));
+                      }
+                  }
+                  while(--usLength);
+              
+                  CScalerSetBit(_OSD_SCRAMBLE_93, ~_BIT3, 0x00);
+              }
+              
+              BYTE CScalerGetVLD(void)
+              {
+                  BYTE zerocnt = 0;
+              
+                  while(!CScalerGetBitVLD())
+                  {
+                      zerocnt += 1;
+                  }
+              
+                  if(zerocnt == 0)
+                  {
+                      return *(pData);
+                  }
+              
+                  switch(zerocnt)
+                  {
+                      case 1:
+                          return (CScalerGetBitVLD() ? *(pData + 1) : *(pData + 2));
+              
+                      case 2:
+                          return (CScalerGetBitVLD() ? *(pData + 3) : *(pData + 4));
+              
+                      case 3:
+                          return (CScalerGetBitVLD() ? *(pData + 5) : *(pData + 6));
+              
+                      case 4:
+                          if (CScalerGetBitVLD())
+                          {
+                              return (CScalerGetBitVLD() ? *(pData + 7) : *(pData + 8));
+                          }
+                          else
+                          {
+                              if (CScalerGetBitVLD())
+                              {
+                                  return (CScalerGetBitVLD() ? *(pData + 9) : *(pData + 10));
+                              }
+                              else
+                              {
+                                  return (CScalerGetBitVLD() ? *(pData + 11) : *(pData + 12));
+                              }
+                          }
+              
+                      default:
+                          if (CScalerGetBitVLD())
+                          {
+                              return (CScalerGetBitVLD() ? *(pData + 13) : *(pData + 14));
+                          }
+                          else
+                          {
+                              CScalerGetBitVLD();
+              
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 23  
+
+                              return *(pData + 15);
+                          }
+                  }
+              }
+              
+              bit CScalerGetBitVLD(void)
+              {
+                  ucVLDTemp = ((ucVLDCnt & 0x07) == 0) ? *(pvldarray++) : (ucVLDTemp << 1);
+              
+                  ucVLDCnt += 1;
+              
+                  return (bit)(ucVLDTemp & 0x80);
+              }
+              
+              #endif  // End of #if(_LOAD_FONT_TYPE == _SOFT_WARE)
+1358          
+1359          
+1360          #if(_OSD_ROTATE_FUCTION == _ON)
+              //--------------------------------------------------
+              // Description  : None
+              // Input Value  : None
+              // Output Value : None
+              //--------------------------------------------------
+              void CScalerSendRotateByte(void)
+              {
+                 BYTE x;
+                 for(x = 0; x < 3; x++)
+                 {
+                    CScalerSendByte(((ROTATETemp[26-x] << 3)&0x88));
+                    CScalerSendByte((((ROTATETemp[14-x] << 3)&0x88) + ((ROTATETemp[17-x] << 2)&0x44) + ((ROTATETemp[20-x
+             -] << 1)&0x22) + (ROTATETemp[23-x]&0x11)));
+                    CScalerSendByte((((ROTATETemp[2-x] << 3)&0x88) + ((ROTATETemp[5-x] << 2)&0x44) + ((ROTATETemp[8-x] <
+             -< 1)&0x22) + (ROTATETemp[11-x]&0x11)));
+              
+                    CScalerSendByte(((ROTATETemp[26-x] << 2)&0x88));
+                    CScalerSendByte((((ROTATETemp[14-x] << 2)&0x88) + ((ROTATETemp[17-x] << 1)&0x44) + (ROTATETemp[20-x]
+             -&0x22) + ((ROTATETemp[23-x] >> 1)&0x11)));
+                    CScalerSendByte((((ROTATETemp[2-x] << 2)&0x88) + ((ROTATETemp[5-x] << 1)&0x44) + (ROTATETemp[8-x]&0x
+             -22) + ((ROTATETemp[11-x] >> 1)&0x11)));
+              
+                    CScalerSendByte(((ROTATETemp[26-x] << 1)&0x88));
+                    CScalerSendByte((((ROTATETemp[14-x] << 1)&0x88) + (ROTATETemp[17-x]&0x44) + ((ROTATETemp[20-x] >> 1)
+             -&0x22) + ((ROTATETemp[23-x] >> 2)&0x11)));
+                    CScalerSendByte((((ROTATETemp[2-x] << 1)&0x88) + (ROTATETemp[5-x]&0x44) + ((ROTATETemp[8-x] >> 1)&0x
+             -22) + ((ROTATETemp[11-x] >> 2)&0x11)));
+              
+                    CScalerSendByte((ROTATETemp[26-x]&0x88));
+                    CScalerSendByte(((ROTATETemp[14-x]&0x88) + ((ROTATETemp[17-x] >> 1)&0x44) + ((ROTATETemp[20-x] >> 2)
+             -&0x22) + ((ROTATETemp[23-x] >> 3)&0x11)));
+                    CScalerSendByte(((ROTATETemp[2-x]&0x88) + ((ROTATETemp[5-x] >> 1)&0x44) + ((ROTATETemp[8-x] >> 2)&0x
+             -22) + ((ROTATETemp[11-x] >> 3)&0x11)));
+                 }
+              }
+              
+              #endif // End of #if(_OSD_ROTATE_FUCTION == _ON)
+1390          
+1391          #if(_DP_SUPPORT == _ON)
+              //--------------------------------------------------
+              // Description  : Read data from registers of scaler and put it into an reading data array
+              // Input Value  : ucAddr    --> Start address of register
+              //                ucLength  --> Numbers of data we want to read
+              //                pArray    --> Pointer of the reading data array
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 24  
+
+              //                bAutoInc  --> Address auto increasing select
+              // Output Value : None
+              //--------------------------------------------------
+              void CScalerReadByteInt(BYTE ucAddr, BYTE *pArray)
+              {
+              #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+              
+                  MCU_SCA_INF_ADDR_FFF4 = ucAddr;
+                  *pArray = MCU_SCA_INF_DATA_FFF5;
+              
+              #endif
+              }
+              
+              //--------------------------------------------------
+              // Description  : Set the value into selected register
+              // Input Value  : ucAddr    --> Address of register
+              //                ucValue   --> Value we want to set
+              // Output Value : None
+              //--------------------------------------------------
+              void CScalerSetByteInt(BYTE ucAddr, BYTE ucValue)
+              {
+              
+                  MCU_SCA_INF_ADDR_FFF4 = ucAddr;
+                  MCU_SCA_INF_DATA_FFF5 = ucValue;
+              
+              }
+              
+              #endif //End of #if(_DP_SUPPORT == _ON)
+1425          
+1426          //--------------------------------------------------
+1427          // Description  : Scaler Reset Process
+1428          // Input Value  : None
+1429          // Output Value : None
+1430          //--------------------------------------------------
+1431          void CScalerResetProcess(void)
+1432          {
+1433   1          CScalerCodeW(tSCALER_RESET_TABLE);
+1434   1      
+1435   1      #if _DEBUG_MESSAGE_SUPPORT
+1436   1      //CDebugMessage("g_ucSearchIndex_CScalerResetProcess=%d", g_ucSearchIndex);
+1437   1      #endif
+1438   1      #if((_TMDS_SUPPORT == _ON) || (_HDMI_SUPPORT == _ON))
+1439   1          if((GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D0_HDMI_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIndex) == _
+             -D1_HDMI_PORT))
+1440   1          {
+1441   2              CScalerPageSelect(_PAGE2);
+1442   2              CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~(_BIT6 | _BIT5 | _BIT4), ((_HDMI_BR_SWAP << 6 ) | (_HDMI_
+             -PN_SWAP << 5) | (0x0F)));
+1443   2          }
+1444   1          else
+1445   1          {
+1446   2              CScalerPageSelect(_PAGE2);
+1447   2              if(GET_INPUTPORT_TYPE(g_ucSearchIndex) ==_D0_DVI_PORT)
+1448   2                      {
+1449   3                      CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~(_BIT6 | _BIT5 | _BIT4), ((_DVI_BR_SWAP << 6) | (_DVI_PN
+             -_SWAP << 5) | (0x0F)));
+1450   3              #if _DEBUG_MESSAGE_SUPPORT
+1451   3              CDebugMessage("DVI_2", 0);
+1452   3              #endif
+1453   3                      }
+1454   2              else
+1455   2                      {
+C51 COMPILER V8.02   SCALER                                                                03/05/2012 13:24:22 PAGE 25  
+
+1456   3                      CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~(_BIT6 | _BIT5 | _BIT4), ((0<< 6) | (_DVI_PN_SWAP << 5) | (0x0F
+             -)));
+1457   3                      
+1458   3      #if _DEBUG_MESSAGE_SUPPORT
+1459   3                      CDebugMessage("VGA", 0);
+1460   3      #endif
+1461   3                      }
+1462   2          }
+1463   1      #else
+                  CScalerPageSelect(_PAGE2);
+                  CScalerSetByte(_P2_POWER_ON_OFF_CTRL_A7, 0x0F);
+              #endif
+1467   1      }
+1468          
+1469          #endif  // End of #if(_SCALER_SERIES_TYPE == _RTD2472D_SERIES)
+1470          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1373    ----
+   CONSTANT SIZE    =    510    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      5      31
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       4
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

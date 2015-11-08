@@ -1,0 +1,1 @@
+"User\Realtek OSD\Code\Realtek_Reserved.c" OPTIMIZE (9,SPEED) DEFINE (_PROJECT="_RTD2472D_DEMO_BOARD") PRINT(.\Output\Realtek_Reserved.lst) OBJECT(.\Output\Realtek_Reserved.obj)

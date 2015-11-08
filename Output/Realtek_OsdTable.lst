@@ -1,0 +1,477 @@
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE REALTEK_OSDTABLE
+OBJECT MODULE PLACED IN .\Output\Realtek_OsdTable.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE User\Realtek OSD\Code\Realtek_OsdTable.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=
+                    -_RTD2472D_DEMO_BOARD) PRINT(.\Output\Realtek_OsdTable.lst) OBJECT(.\Output\Realtek_OsdTable.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : OsdTable.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #include "Common\Header\Include.h"
+  21          
+  22          #if(_OSD_TYPE == _REALTEK_OSD)
+  23          
+  24          //----------------------------------------------------------------------------------------------------
+  25          // OSD Operation Table
+  26          //----------------------------------------------------------------------------------------------------
+  27          code void (*OperationTable[][4])(void) =
+  28          {
+  29              { COsdMenuNone,                     COsdLeftNone,                       COsdRightNone,                
+             -      COsdExitNone                        },
+  30              { COsdMenuDicomSetting,             COsdLeftDicomSetting,               COsdRightDicomSetting,        
+             -      COsdExitDicomSetting                },
+  31              { COsdMenuGammaSetting,             COsdLeftGammaSetting,               COsdRightGammaSetting,        
+             - COsdExitGammaSetting                     },
+  32              { COsdMenuBrightnessSetting,               COsdLeftBrightnessSetting,                 COsdRightBrightn
+             -essSetting,                COsdExitBrightnessSetting         },
+  33              { COsdMenuContrastSetting,              COsdLeftContrastSetting ,                 COsdRightContrastSet
+             -ting,                COsdExitContrastSetting         },
+  34              { COsdMenuSignalSource,             COsdLeftSignalSource,               COsdRightSignalSource,        
+             -      COsdExitSignalSource                },
+  35          
+  36          //#if(_AUDIO_SUPPORT == _ON)
+  37          //    { COsdMenuAudio,                    COsdLeftAudio,                      COsdRightAudio,             
+             -        COsdExitAudio                       },
+  38          //#endif
+  39          
+  40              { COsdMenuAutoAdjust,                  COsdLeftAutoAdjust,                    COsdRightAutoAdjust,    
+             -               COsdExitAutoAdjust                   },
+  41              { COsdMenuFactory,                  COsdLeftFactory,                    COsdRightFactory,             
+             -      COsdExitFactory                     },
+  42          
+  43          #if(_DDCCI_SUPPORT == _ON)
+                  { COsdMenuDDCCI,                    COsdLeftDDCCI,                      COsdRightDDCCI,               
+             -       COsdExitDDCCI},
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 2   
+
+              #endif
+  46          
+  47              { COsdMenuSubDicom,              COsdLeftSubDicom,                COsdRightSubDicom,               COs
+             -dExitSubDicom                 },
+  48              { COsdMenuSubGamma,              COsdLeftSubGamma,                COsdRightSubGamma,               COs
+             -dExitSubGamma                 },
+  49           //   { COsdMenuContrast,                 COsdLeftContrast,                   COsdRightContrast,          
+             -        COsdExitContrast                    },
+  50              { COsdMenuSubBrightness,            COsdLeftSubBrightness,              COsdRightSubBrightness,       
+             -      COsdExitSubBrightness               },
+  51          
+  52              { COsdMenuSubContrast,              COsdLeftSubContrast,                COsdRightSubContrast,         
+             -      COsdExitSubContrast                 },
+  53          //    { COsdMenuBrightness,               COsdLeftBrightness,                 COsdRightBrightness,        
+             -        COsdExitBrightness                  },
+  54              { COsdMenuSignalSelect,              COsdLeftSignalSelect,                COsdRightSignalSelect,      
+             -         COsdExitSignalSelect                },
+  55              { COsdMenuSubAutoAdjust,              COsdLeftSubAutoAdjust,                COsdRightSubAutoAdjust,   
+             -            COsdExitSubAutoAdjust                },
+  56          
+  57              { COsdMenuSubFacReset,              COsdLeftSubFacReset,                COsdRightSubFacReset,         
+             -      COsdExitSubFacReset},
+  58          
+  59              { COsdMenuColorAdj,                 COsdLeftColorAdj,                   COsdRightColorAdj,            
+             -      COsdExitColorAdj                    },
+  60              { COsdMenuSubColorAdjR,             COsdLeftSubColorAdjR,               COsdRightSubColorAdjR,        
+             -      COsdExitSubColorAdjR                },
+  61              { COsdMenuSubColorAdjG,             COsdLeftSubColorAdjG,               COsdRightSubColorAdjG,        
+             -      COsdExitSubColorAdjG                },
+  62              { COsdMenuSubColorAdjB,             COsdLeftSubColorAdjB,               COsdRightSubColorAdjB,        
+             -      COsdExitSubColorAdjB                },
+  63              { COsdMenuAdjR,                     COsdLeftAdjR,                       COsdRightAdjR,                
+             -      COsdExitAdjR                        },
+  64              { COsdMenuAdjG,                     COsdLeftAdjG,                       COsdRightAdjG,                
+             -      COsdExitAdjG                        },
+  65              { COsdMenuAdjB,                     COsdLeftAdjB,                       COsdRightAdjB,                
+             -      COsdExitAdjB                        },
+  66              { COsdMenuColorTemp,                COsdLeftColorTemp,                  COsdRightColorTemp,           
+             -      COsdExitColorTemp                   },
+  67              { COsdMenuSubTempColor9300,         COsdLeftSubTempColor9300,           COsdRightSubTempColor9300,    
+             -      COsdExitSubTempColor9300            },
+  68              { COsdMenuSubTempColor6500,         COsdLeftSubTempColor6500,           COsdRightSubTempColor6500,    
+             -      COsdExitSubTempColor6500            },
+  69              { COsdMenuSubTempColor5800,         COsdLeftSubTempColor5800,           COsdRightSubTempColor5800,    
+             -      COsdExitSubTempColor5800            },
+  70              { COsdMenuSubTempSrgb,              COsdLeftSubTempSrgb,                COsdRightSubTempSrgb,         
+             -      COsdExitSubTempSrgb                 },
+  71              { COsdMenuSubTempUser,              COsdLeftSubTempUser,                COsdRightSubTempUser,         
+             -      COsdExitSubTempUser                 },
+  72          
+  73          #if(_DCR_MODE != _DCR_TYPE_OFF)
+                  { COsdMenuColorDCR,                 COsdLeftColorDCR,                   COsdRightColorDCR,            
+             -      COsdExitColorDCR                    },
+              #endif
+  76          
+  77              { COsdMenuClock,                    COsdLeftClock,                      COsdRightClock,               
+             -      COsdExitClock                       },
+  78              { COsdMenuSubClock,                 COsdLeftSubClock,                   COsdRightSubClock,            
+             -      COsdExitSubClock                    },
+  79              { COsdMenuPhase,                    COsdLeftPhase,                      COsdRightPhase,               
+             -      COsdExitPhase                       },
+  80              { COsdMenuSubPhase,                 COsdLeftSubPhase,                   COsdRightSubPhase,            
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 3   
+
+             -      COsdExitSubPhase                    },
+  81              { COsdMenuSharpness,                COsdLeftSharpness,                  COsdRightSharpness,           
+             -      COsdExitSharpness                   },
+  82              { COsdMenuSubSharpness0,            COsdLeftSubSharpness0,              COsdRightSubSharpness0,       
+             -      COsdExitSubSharpness0               },
+  83              { COsdMenuSubSharpness1,            COsdLeftSubSharpness1,              COsdRightSubSharpness1,       
+             -      COsdExitSubSharpness1               },
+  84              { COsdMenuSubSharpness2,            COsdLeftSubSharpness2,              COsdRightSubSharpness2,       
+             -      COsdExitSubSharpness2               },
+  85              { COsdMenuSubSharpness3,            COsdLeftSubSharpness3,              COsdRightSubSharpness3,       
+             -      COsdExitSubSharpness3               },
+  86              { COsdMenuSubSharpness4,            COsdLeftSubSharpness4,              COsdRightSubSharpness4,       
+             -      COsdExitSubSharpness4               },
+  87              { COsdMenuHPosition,                COsdLeftHPosition,                  COsdRightHPosition,           
+             -      COsdExitHPosition                   },
+  88              { COsdMenuSubHPosition,             COsdLeftSubHPosition,               COsdRightSubHPosition,        
+             -      COsdExitSubHPosition                },
+  89              { COsdMenuVPosition,                COsdLeftVPosition,                  COsdRightVPosition,           
+             -      COsdExitVPosition                   },
+  90              { COsdMenuSubVPosition,             COsdLeftSubVPosition,               COsdRightSubVPosition,        
+             -      COsdExitSubVPosition                },
+  91          
+  92          #if(_OD_SUPPORT == _ON)
+                  { COsdMenuOD,                       COsdLeftOD,                         COsdRightOD,                  
+             -      COsdExitOD                          },
+                  { COsdMenuSubOD,                    COsdLeftSubOD,                      COsdRightSubOD,               
+             -      COsdExitSubOD                       },
+              #endif
+  96          
+  97              { COsdMenuOsdHPos,                  COsdLeftOsdHPos,                    COsdRightOsdHPos,             
+             -      COsdExitOsdHPos                     },
+  98              { COsdMenuSubOsdHPos,               COsdLeftSubOsdHPos,                 COsdRightSubOsdHPos,          
+             -      COsdExitSubOsdHPos                  },
+  99              { COsdMenuOsdVPos,                  COsdLeftOsdVPos,                    COsdRightOsdVPos,             
+             -      COsdExitOsdVPos                     },
+ 100              { COsdMenuSubOsdVPos,               COsdLeftSubOsdVPos,                 COsdRightSubOsdVPos,          
+             -      COsdExitSubOsdVPos                  },
+ 101              { COsdMenuOsdTime,                  COsdLeftOsdTime,                    COsdRightOsdTime,             
+             -      COsdExitOsdTime                     },
+ 102              { COsdMenuSubOsdTime,               COsdLeftSubOsdTime,                 COsdRightSubOsdTime,          
+             -      COsdExitSubOsdTime                  },
+ 103              { COsdMenuLanguage,                 COsdLeftLanguage,                   COsdRightLanguage,            
+             -      COsdExitLanguage                    },
+ 104              { COsdMenuSubEng,                   COsdLeftSubEng,                     COsdRightSubEng,              
+             -      COsdExitSubEng                      },
+ 105              { COsdMenuSubFran,                  COsdLeftSubFran,                    COsdRightSubFran,             
+             -      COsdExitSubFran                     },
+ 106              { COsdMenuSubDeut,                  COsdLeftSubDeut,                    COsdRightSubDeut,             
+             -      COsdExitSubDeut                     },
+ 107              { COsdMenuSubEspa,                  COsdLeftSubEspa,                    COsdRightSubEspa,             
+             -      COsdExitSubEspa                     },
+ 108              { COsdMenuSubChi,                   COsdLeftSubChi,                     COsdRightSubChi,              
+             -      COsdExitSubChi                      },
+ 109              { COsdMenuSubSimpleChi,             COsdLeftSubSimpleChi,               COsdRightSubSimpleChi,        
+             -      COsdExitSubSimpleChi                },
+ 110              { COsdMenuSubJap,                   COsdLeftSubJap,                     COsdRightSubJap,              
+             -      COsdExitSubJap                      },
+ 111          
+ 112              { COsdMenuSingalVGA,                COsdLeftSingalVGA,                  COsdRightSingalVGA,           
+             -      COsdExitSingalVGA                   },
+ 113              { COsdMenuSingalDVI,                COsdLeftSingalDVI,                  COsdRightSingalDVI,           
+             -      COsdExitSingalDVI                   },
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 4   
+
+ 114              { COsdMenuSingalHDMI,               COsdLeftSingalHDMI,                 COsdRightSingalHDMI,          
+             -      COsdExitSingalHDMI                  },
+ 115              { COsdMenuSingalDisplayPort,        COsdLeftSingalDisplayPort,          COsdRightSingalDisplayPort,   
+             -      COsdExitSingalDisplayPort           },
+ 116          
+ 117          #if(_SOURCE_SEARCH_TYPE_BY_OSD == _ON)
+ 118              { COsdMenuSingalAutoSearch,         COsdLeftSingalAutoSearch,           COsdRightSingalAutoSearch,    
+             -      COsdExitSingalAutoSearch            },
+ 119          #endif
+ 120          
+ 121          #if(_AUDIO_SUPPORT == _ON)
+                  { COsdMenuVolume,                   COsdLeftVolume,                     COsdRightVolume,              
+             -      COsdExitVolume                      },
+                  { COsdMenuSubVolume,                COsdLeftSubVolume,                  COsdRightSubVolume,           
+             -      COsdExitSubVolume                   },
+                  { COsdMenuMute,                     COsdLeftMute,                       COsdRightMute,                
+             -      COsdExitMute                        },
+              #endif // End of #if(_AUDIO_SUPPORT==_ON)
+ 126          
+ 127          #if(_DDCCI_SUPPORT == _ON)
+                  {COsdMenuDDCCIONOFF,                COsdLeftDDCCIONOFF,                 COsdRightDDCCIONOFF,          
+             -      COsdExitDDCCIONOFF                  },
+              #endif
+ 130          
+ 131          #if(_VIVID_COLOR_FUCTION == _ON)
+                  { COsdMenuVividColor,               COsdLeftVividColor,                 COsdRightVividColor,          
+             -      COsdExitVividColor                  },
+                  { COsdMenuColorWindow,              COsdLeftColorWindow,                COsdRightColorWindow,         
+             -      COsdExitColorWindow                 },
+                  { COsdMenuColorWindowDisable,       COsdLeftColorWindowDisable,         COsdRightColorWindowDisable,  
+             -      COsdExitColorWindowDisable          },
+                  { COsdMenuColorWindowFull,          COsdLeftColorWindowFull,            COsdRightColorWindowFull,     
+             -      COsdExitColorWindowFull             },
+                  { COsdMenuColorWindowDemo,          COsdLeftColorWindowDemo,            COsdRightColorWindowDemo,     
+             -      COsdExitColorWindowDemo             },
+                  { COsdMenuColorWindowUser,          COsdLeftColorWindowUser,            COsdRightColorWindowUser,     
+             -      COsdExitColorWindowUser             },
+                  { COsdMenuColorWindowUserHPos,      COsdLeftColorWindowUserHPos,        COsdRightColorWindowUserHPos, 
+             -      COsdExitColorWindowUserHPos         },
+                  { COsdMenuColorWindowUserHPosAdj,   COsdLeftColorWindowUserHPosAdj,     COsdRightColorWindowUserHPosAd
+             -j,    COsdExitColorWindowUserHPosAdj      },
+                  { COsdMenuColorWindowUserVPos,      COsdLeftColorWindowUserVPos,        COsdRightColorWindowUserVPos, 
+             -      COsdExitColorWindowUserVPos         },
+                  { COsdMenuColorWindowUserVPosAdj,   COsdLeftColorWindowUserVPosAdj,     COsdRightColorWindowUserVPosAd
+             -j,    COsdExitColorWindowUserVPosAdj      },
+                  { COsdMenuColorWindowUserHWid,      COsdLeftColorWindowUserHWid,        COsdRightColorWindowUserHWid, 
+             -      COsdExitColorWindowUserHWid         },
+                  { COsdMenuColorWindowUserHWidAdj,   COsdLeftColorWindowUserHWidAdj,     COsdRightColorWindowUserHWidAd
+             -j,    COsdExitColorWindowUserHWidAdj      },
+                  { COsdMenuColorWindowUserVHei,      COsdLeftColorWindowUserVHei,        COsdRightColorWindowUserVHei, 
+             -      COsdExitColorWindowUserVHei         },
+                  { COsdMenuColorWindowUserVHeiAdj,   COsdLeftColorWindowUserVHeiAdj,     COsdRightColorWindowUserVHeiAd
+             -j,    COsdExitColorWindowUserVHeiAdj      },
+                  { COsdMenuDCCMode,                  COsdLeftDCCMode,                    COsdRightDCCMode,             
+             -      COsdExitDCCMode                     },
+                  { COsdMenuDCCModeDisable,           COsdLeftDCCModeDisable,             COsdRightDCCModeDisable,      
+             -      COsdExitDCCModeDisable              },
+                  { COsdMenuDCCModeMovie,             COsdLeftDCCModeMovie,               COsdRightDCCModeMovie,        
+             -      COsdExitDCCModeMovie                },
+                  { COsdMenuDCCModePhoto,             COsdLeftDCCModePhoto,               COsdRightDCCModePhoto,        
+             -      COsdExitDCCModePhoto                },
+                  { COsdMenuDCCModeGame,              COsdLeftDCCModeGame,                COsdRightDCCModeGame,         
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 5   
+
+             -      COsdExitDCCModeGame                 },
+                  { COsdMenuICMMode,                  COsdLeftICMMode,                    COsdRightICMMode,             
+             -      COsdExitICMMode                     },
+                  { COsdMenuICMModeDisable,           COsdLeftICMModeDisable,             COsdRightICMModeDisable,      
+             -      COsdExitICMModeDisable              },
+                  { COsdMenuICMModeMovie,             COsdLeftICMModeMovie,               COsdRightICMModeMovie,        
+             -      COsdExitICMModeMovie                },
+                  { COsdMenuICMModePhoto,             COsdLeftICMModePhoto,               COsdRightICMModePhoto,        
+             -      COsdExitICMModePhoto                },
+                  { COsdMenuICMModeGame,              COsdLeftICMModeGame,                COsdRightICMModeGame,         
+             -      COsdExitICMModeGame                 },
+                  { COsdMenuICMModeUser,              COsdLeftICMModeUser,                COsdRightICMModeUser,         
+             -      COsdExitICMModeUser                 },
+                  { COsdMenuICMModeUserRedHue,        COsdLeftICMModeUserRedHue,          COsdRightICMModeUserRedHue,   
+             -      COsdExitICMModeUserRedHue           },
+                  { COsdMenuICMModeUserRedHueAdj,     COsdLeftICMModeUserRedHueAdj,       COsdRightICMModeUserRedHueAdj,
+             -      COsdExitICMModeUserRedHueAdj        },
+                  { COsdMenuICMModeUserRedSat,        COsdLeftICMModeUserRedSat,          COsdRightICMModeUserRedSat,   
+             -      COsdExitICMModeUserRedSat           },
+                  { COsdMenuICMModeUserRedSatAdj,     COsdLeftICMModeUserRedSatAdj,       COsdRightICMModeUserRedSatAdj,
+             -      COsdExitICMModeUserRedSatAdj        },
+                  { COsdMenuICMModeUserGreenHue,      COsdLeftICMModeUserGreenHue,        COsdRightICMModeUserGreenHue, 
+             -      COsdExitICMModeUserGreenHue         },
+                  { COsdMenuICMModeUserGreenHueAdj,   COsdLeftICMModeUserGreenHueAdj,     COsdRightICMModeUserGreenHueAd
+             -j,    COsdExitICMModeUserGreenHueAdj      },
+                  { COsdMenuICMModeUserGreenSat,      COsdLeftICMModeUserGreenSat,        COsdRightICMModeUserGreenSat, 
+             -      COsdExitICMModeUserGreenSat         },
+                  { COsdMenuICMModeUserGreenSatAdj,   COsdLeftICMModeUserGreenSatAdj,     COsdRightICMModeUserGreenSatAd
+             -j,    COsdExitICMModeUserGreenSatAdj      },
+                  { COsdMenuICMModeUserBlueHue,       COsdLeftICMModeUserBlueHue,         COsdRightICMModeUserBlueHue,  
+             -      COsdExitICMModeUserBlueHue          },
+                  { COsdMenuICMModeUserBlueHueAdj,    COsdLeftICMModeUserBlueHueAdj,      COsdRightICMModeUserBlueHueAdj
+             -,     COsdExitICMModeUserBlueHueAdj       },
+                  { COsdMenuICMModeUserBlueSat,       COsdLeftICMModeUserBlueSat,         COsdRightICMModeUserBlueSat,  
+             -      COsdExitICMModeUserBlueSat          },
+                  { COsdMenuICMModeUserBlueSatAdj,    COsdLeftICMModeUserBlueSatAdj,      COsdRightICMModeUserBlueSatAdj
+             -,     COsdExitICMModeUserBlueSatAdj       },
+                  { COsdMenuVividContrast,            COsdLeftVividContrast,              COsdRightVividContrast,       
+             -      COsdExitVividContrast               },
+                  { COsdMenuVividContrastAdj,         COsdLeftVividContrastAdj,           COsdRightVividContrastAdj,    
+             -      COsdExitVividContrastAdj            },
+                  { COsdMenuVividBrightness,          COsdLeftVividBrightness,            COsdRightVividBrightness,     
+             -      COsdExitVividBrightness             },
+                  { COsdMenuVividBrightnessAdj,       COsdLeftVividBrightnessAdj,         COsdRightVividBrightnessAdj,  
+             -      COsdExitVividBrightnessAdj          },
+              #endif
+ 174          
+ 175          #if(_NON_LINEAR_SCALING_FUCTION == _ON)
+                  { COsdMenuNonLinearScaling,         COsdLeftNonLinearScaling,           COsdRightNonLinearScaling,    
+             -      COsdExitNonLinearScaling            },
+              #endif
+ 178          
+ 179          #if(_ASPECT_RATIO_SUPPORT == _ON)
+ 180              { COsdMenuAspectRatio,              COsdLeftAspectRatio,                COsdRightAspectRatio,         
+             -      COsdExitAspectRatio                 },
+ 181          #endif
+ 182          
+ 183          #if (_SRGB_COLOR_ENHANCE == _ON)
+                  { COsdMenuSrgb,                     COsdLeftSrgb,                       COsdRightSrgb,                
+             -      COsdExitSrgb                        },
+                  { COsdMenuHue,                      COsdLeftHue,                        COsdRightHue,                 
+             -      COsdExitHue                         },
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 6   
+
+                  { COsdMenuSubHue,                   COsdLeftSubHue,                     COsdRightSubHue,              
+             -      COsdExitSubHue                      },
+                  { COsdMenuSaturation,               COsdLeftSaturation,                 COsdRightSaturation,          
+             -      COsdExitSaturation                  },
+                  { COsdMenuSubSaturation,            COsdLeftSubSaturation,              COsdRightSubSaturation,       
+             -      COsdExitSubSaturation               },
+              #endif
+ 190          
+ 191          // V012 Modify 20100304 Start
+ 192          // V012 Patch Note (1) : Add RGB/YUV color space convert function.
+ 193          #if(_COLOR_FORMAT_CONVERT == _ON)
+ 194              { COsdMenuRGBYUV,                   COsdLeftRGBYUV,                     COsdRightRGBYUV,              
+             -    COsdExitRGBYUV                    },
+ 195              { COsdMenuSubRGB,                   COsdLeftSubRGB,                     COsdRightSubRGB,              
+             -    COsdExitSubRGB                    },
+ 196              { COsdMenuSubYUV,                   COsdLeftSubYUV,                     COsdRightSubYUV,              
+             -    COsdExitSubYUV                    },
+ 197          #endif
+ 198          // V012 Modify 20100304 End
+ 199          
+ 200              { COsdMenuFAutoColor,               COsdLeftFAutoColor,                 COsdRightFAutoColor,          
+             -      COsdExitFAutoColor                  },
+ 201              { COsdMenuFReset,                   COsdLeftFReset,                     COsdRightFReset,              
+             -      COsdExitFReset                      },
+ 202              { COsdMenuFOffset,                  COsdLeftFOffset,                    COsdRightFOffset,             
+             -      COsdExitFOffset                     },
+ 203              { COsdMenuFOffsetR,                 COsdLeftFOffsetR,                   COsdRightFOffsetR,            
+             -      COsdExitFOffsetR                    },
+ 204              { COsdMenuFOffsetRAdj,              COsdLeftFOffsetRAdj,                COsdRightFOffsetRAdj,         
+             -      COsdExitFOffsetRAdj                 },
+ 205              { COsdMenuFOffsetG,                 COsdLeftFOffsetG,                   COsdRightFOffsetG,            
+             -      COsdExitFOffsetG                    },
+ 206              { COsdMenuFOffsetGAdj,              COsdLeftFOffsetGAdj,                COsdRightFOffsetGAdj,         
+             -      COsdExitFOffsetGAdj                 },
+ 207              { COsdMenuFOffsetB,                 COsdLeftFOffsetB,                   COsdRightFOffsetB,            
+             -      COsdExitFOffsetB                    },
+ 208              { COsdMenuFOffsetBAdj,              COsdLeftFOffsetBAdj,                COsdRightFOffsetBAdj,         
+             -      COsdExitFOffsetBAdj                 },
+ 209              { COsdMenuFGain,                    COsdLeftFGain,                      COsdRightFGain,               
+             -      COsdExitFGain                       },
+ 210              { COsdMenuFGainR,                   COsdLeftFGainR,                     COsdRightFGainR,              
+             -      COsdExitFGainR                      },
+ 211              { COsdMenuFGainRAdj,                COsdLeftFGainRAdj,                  COsdRightFGainRAdj,           
+             -      COsdExitFGainRAdj                   },
+ 212              { COsdMenuFGainG,                   COsdLeftFGainG,                     COsdRightFGainG,              
+             -      COsdExitFGainG                      },
+ 213              { COsdMenuFGainGAdj,                COsdLeftFGainGAdj,                  COsdRightFGainGAdj,           
+             -      COsdExitFGainGAdj                   },
+ 214              { COsdMenuFGainB,                   COsdLeftFGainB,                     COsdRightFGainB,              
+             -      COsdExitFGainB                      },
+ 215              { COsdMenuFGainBAdj,                COsdLeftFGainBAdj,                  COsdRightFGainBAdj,           
+             -      COsdExitFGainBAdj                   },
+ 216              { COsdMenuFColor9300,               COsdLeftFColor9300,                 COsdRightFColor9300,          
+             -      COsdExitFColor9300                  },
+ 217              { COsdMenuFColor9300R,              COsdLeftFColor9300R,                COsdRightFColor9300R,         
+             -      COsdExitFColor9300R                 },
+ 218              { COsdMenuFColor9300RAdj,           COsdLeftFColor9300RAdj,             COsdRightFColor9300RAdj,      
+             -      COsdExitFColor9300RAdj              },
+ 219              { COsdMenuFColor9300G,              COsdLeftFColor9300G,                COsdRightFColor9300G,         
+             -      COsdExitFColor9300G                 },
+ 220              { COsdMenuFColor9300GAdj,           COsdLeftFColor9300GAdj,             COsdRightFColor9300GAdj,      
+             -      COsdExitFColor9300GAdj              },
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 7   
+
+ 221              { COsdMenuFColor9300B,              COsdLeftFColor9300B,                COsdRightFColor9300B,         
+             -      COsdExitFColor9300B                 },
+ 222              { COsdMenuFColor9300BAdj,           COsdLeftFColor9300BAdj,             COsdRightFColor9300BAdj,      
+             -      COsdExitFColor9300BAdj              },
+ 223              { COsdMenuFColor6500,               COsdLeftFColor6500,                 COsdRightFColor6500,          
+             -      COsdExitFColor6500                  },
+ 224              { COsdMenuFColor6500R,              COsdLeftFColor6500R,                COsdRightFColor6500R,         
+             -      COsdExitFColor6500R                 },
+ 225              { COsdMenuFColor6500RAdj,           COsdLeftFColor6500RAdj,             COsdRightFColor6500RAdj,      
+             -      COsdExitFColor6500RAdj              },
+ 226              { COsdMenuFColor6500G,              COsdLeftFColor6500G,                COsdRightFColor6500G,         
+             -      COsdExitFColor6500G                 },
+ 227              { COsdMenuFColor6500GAdj,           COsdLeftFColor6500GAdj,             COsdRightFColor6500GAdj,      
+             -      COsdExitFColor6500GAdj              },
+ 228              { COsdMenuFColor6500B,              COsdLeftFColor6500B,                COsdRightFColor6500B,         
+             -      COsdExitFColor6500B                 },
+ 229              { COsdMenuFColor6500BAdj,           COsdLeftFColor6500BAdj,             COsdRightFColor6500BAdj,      
+             -      COsdExitFColor6500BAdj              },
+ 230              { COsdMenuFColor5800,               COsdLeftFColor5800,                 COsdRightFColor5800,          
+             -      COsdExitFColor5800                  },
+ 231              { COsdMenuFColor5800R,              COsdLeftFColor5800R,                COsdRightFColor5800R,         
+             -      COsdExitFColor5800R                 },
+ 232              { COsdMenuFColor5800RAdj,           COsdLeftFColor5800RAdj,             COsdRightFColor5800RAdj,      
+             -      COsdExitFColor5800RAdj              },
+ 233              { COsdMenuFColor5800G,              COsdLeftFColor5800G,                COsdRightFColor5800G,         
+             -      COsdExitFColor5800G                 },
+ 234              { COsdMenuFColor5800GAdj,           COsdLeftFColor5800GAdj,             COsdRightFColor5800GAdj,      
+             -      COsdExitFColor5800GAdj              },
+ 235              { COsdMenuFColor5800B,              COsdLeftFColor5800B,                COsdRightFColor5800B,         
+             -      COsdExitFColor5800B                 },
+ 236              { COsdMenuFColor5800BAdj,           COsdLeftFColor5800BAdj,             COsdRightFColor5800BAdj,      
+             -      COsdExitFColor5800BAdj              },
+ 237              { COsdMenuFSrgb,                    COsdLeftFSrgb,                      COsdRightFSrgb,               
+             -      COsdExitFSrgb                       },
+ 238              { COsdMenuFSrgbR,                   COsdLeftFSrgbR,                     COsdRightFSrgbR,              
+             -      COsdExitFSrgbR                      },
+ 239              { COsdMenuFSrgbRAdj,                COsdLeftFSrgbRAdj,                  COsdRightFSrgbRAdj,           
+             -      COsdExitFSrgbRAdj                   },
+ 240              { COsdMenuFSrgbG,                   COsdLeftFSrgbG,                     COsdRightFSrgbG,              
+             -      COsdExitFSrgbG                      },
+ 241              { COsdMenuFSrgbGAdj,                COsdLeftFSrgbGAdj,                  COsdRightFSrgbGAdj,           
+             -      COsdExitFSrgbGAdj                   },
+ 242              { COsdMenuFSrgbB,                   COsdLeftFSrgbB,                     COsdRightFSrgbB,              
+             -      COsdExitFSrgbB                      },
+ 243              { COsdMenuFSrgbBAdj,                COsdLeftFSrgbBAdj,                  COsdRightFSrgbBAdj,           
+             -      COsdExitFSrgbBAdj                   },
+ 244              { COsdMenuFUser,                    COsdLeftFUser,                      COsdRightFUser,               
+             -      COsdExitFUser                       },
+ 245              { COsdMenuFUserR,                   COsdLeftFUserR,                     COsdRightFUserR,              
+             -      COsdExitFUserR                      },
+ 246              { COsdMenuFUserRAdj,                COsdLeftFUserRAdj,                  COsdRightFUserRAdj,           
+             -      COsdExitFUserRAdj                   },
+ 247              { COsdMenuFUserG,                   COsdLeftFUserG,                     COsdRightFUserG,              
+             -      COsdExitFUserG                      },
+ 248              { COsdMenuFUserGAdj,                COsdLeftFUserGAdj,                  COsdRightFUserGAdj,           
+             -      COsdExitFUserGAdj                   },
+ 249              { COsdMenuFUserB,                   COsdLeftFUserB,                     COsdRightFUserB,              
+             -      COsdExitFUserB                      },
+ 250              { COsdMenuFUserBAdj,                COsdLeftFUserBAdj,                  COsdRightFUserBAdj,           
+             -      COsdExitFUserBAdj                   },
+ 251              { COsdMenuFBright,                  COsdLeftFBright,                    COsdRightFBright,             
+             -      COsdExitFBright                     },
+C51 COMPILER V8.02   REALTEK_OSDTABLE                                                      03/05/2012 13:24:28 PAGE 8   
+
+ 252              { COsdMenuFBrightAdj,               COsdLeftFBrightAdj,                 COsdRightFBrightAdj,          
+             -      COsdExitFBrightAdj                  },
+ 253              { COsdMenuFAutoConfig,              COsdLeftFAutoConfig,                COsdRightFAutoConfig,         
+             -      COsdExitFAutoConfig                 },
+ 254              { COsdMenuFExit,                    COsdLeftFExit,                      COsdRightFExit,               
+             -      COsdExitFExit                       },
+ 255          
+ 256          };
+ 257          
+ 258          
+ 259          #endif  // End of #if(_OSD_TYPE == _REALTEK_OSD)
+ 260          
+ 261          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   1440    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

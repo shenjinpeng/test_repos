@@ -1,0 +1,2854 @@
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE SYNC
+OBJECT MODULE PLACED IN .\Output\Sync.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE Scaler\Code\Sync.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_RTD2472D_DEMO_BOARD) 
+                    -PRINT(.\Output\Sync.lst) OBJECT(.\Output\Sync.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : Sync.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #define __SYNC__
+  21          
+  22          #include "Common\Header\Include.h"
+  23          
+  24          #if(_SCALER_SERIES_TYPE == _RTD2472D_SERIES)
+  25          
+  26          #if((_TMDS_SUPPORT == _ON) || (_HDMI_SUPPORT == _ON) || (_DP_SUPPORT == _ON))
+  27          //--------------------------------------------------
+  28          // Description  : PHY set
+  29          // Input Value  : None
+  30          // Output Value : None
+  31          //--------------------------------------------------
+  32          void CSyncScanInputPortResetPhy(void)
+  33          {
+  34   1          CScalerPageSelect(_PAGEB);
+  35   1      
+  36   1          // FLD Reset
+  37   1      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  if(g_ucIDCode == 0x0E) //  ver.F
+                  {
+                      CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT3, _BIT3);
+                      CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT3, 0x00);
+                  }
+                  else
+                  {
+                      CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT2, 0x00);
+                  }
+              
+              #elif(_SCALER_TYPE == _RTD2472D)
+  49   1          if(g_ucIDCode == 0x04) // ver.D
+  50   1          {
+  51   2              CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT3, _BIT3);
+  52   2              CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT3, 0x00);
+  53   2          }
+  54   1          else
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 2   
+
+  55   1          {
+  56   2              CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT2, 0x00);
+  57   2          }
+  58   1      #else
+                   // do nothing
+              #endif
+  61   1      
+  62   1          CScalerSetBit(_PB_DP_AUX_00_B3, ~_BIT7, _BIT7);
+  63   1      
+  64   1      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                      if(g_ucIDCode >= 0x0F) //  ver.G
+                      {
+                          CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0xCd);
+                          CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0x4d);
+                      }
+                      else
+                      {
+                          CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0x8d);
+                          CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0x0d);
+                      }
+              #elif(_SCALER_TYPE == _RTD2472D)
+  76   1      
+  77   1              CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0x8d);
+  78   1              CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0x0d);
+  79   1      #else
+                      CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0x8d);
+                      CScalerSetByte(_PB_DP_OOBS_RXAMP_B0, 0x0d);
+              #endif
+  83   1      
+  84   1      }
+  85          
+  86          //--------------------------------------------------
+  87          // Description  : Scan DVI input port to obtain if the signal is available
+  88          // Input Value  : None
+  89          // Output Value : Return _TRUE if the signal is available
+  90          //--------------------------------------------------
+  91          bit CSyncScanInputPortDVI(void)
+  92          {
+  93   1          BYTE cnt0 = 0;
+  94   1      
+  95   1          // HDMI/DVI function enable
+  96   1          CScalerPageSelect(_PAGE2);
+  97   1          CScalerSetBit(_P2_Z0CC2_AC, ~_BIT6, _BIT6);
+  98   1      
+  99   1      #if(_SCALER_TYPE == _RTD2545LR)
+                  CSyncInputPort2DSwitch();
+              #endif
+ 102   1      
+ 103   1          if(GET_TMDS_INITIAL() == _TRUE)
+ 104   1          {
+ 105   2              // Ignore AVmute
+ 106   2              CScalerPageSelect(_PAGE2);
+ 107   2              CScalerSetBit(_P2_TMDS_RPS_AE, ~_BIT7, _BIT7);
+ 108   2      
+ 109   2              CPowerADCAPLLOff();
+ 110   2      
+ 111   2              // Set Measure Source to DVI/HDMI
+ 112   2              CScalerSetBit(_SYNC_CTRL_49, ~(_BIT1 | _BIT0), 0x00);
+ 113   2      
+ 114   2              // Enable DE-Only Mode
+ 115   2      
+ 116   2              // Select HDMI Port
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 3   
+
+ 117   2              CScalerPageSelect(_PAGEC);
+ 118   2              CScalerSetBit(_PC_DP_CTL_A1, ~_BIT5, _BIT5);
+ 119   2      
+ 120   2              // HDMI/DP selector
+ 121   2              CScalerPageSelect(_PAGEB);
+ 122   2              CScalerSetByte(_PB_DIG00_E0, 0xD0);
+ 123   2      
+ 124   2              // Z0 turn on
+ 125   2              CScalerSetByte(_PB_DP_Z0_CALIBRATION_B6, 0xf4);
+ 126   2      
+ 127   2              // Enable OOBS manual mode
+ 128   2              CScalerSetByte(_PB_DP_AUX_00_B3, 0x92);
+ 129   2      
+ 130   2              g_bHDMIHDCPFlag = 0;
+ 131   2      
+ 132   2      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+ 133   2              // do nothing
+ 134   2      #else
+                      CLR_TMDS_INITIAL();
+              #endif
+ 137   2          }
+ 138   1      
+ 139   1          if(ucCurrState == _SLEEP_STATE)
+ 140   1          {
+ 141   2      
+ 142   2      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+ 143   2              CLR_TMDS_INITIAL();
+ 144   2      #else
+                      // do nothing
+              #endif
+ 147   2      
+ 148   2              if(CSyncTMDSWakeUpDetect() == _TRUE)
+ 149   2              {
+ 150   3                  return _TRUE;
+ 151   3              }
+ 152   2              else
+ 153   2              {
+ 154   3                  return _FALSE;
+ 155   3              }
+ 156   2          }
+ 157   1      
+ 158   1      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+ 159   1      
+ 160   1          // Solve OSD respond time in sleep, increase SearchTimes
+ 161   1          if(g_ucSearchTimes >= 3)
+ 162   1          {
+ 163   2              g_ucSearchTimes = g_ucSearchTimes - 3;
+ 164   2          }
+ 165   1          else
+ 166   1          {
+ 167   2              g_ucSearchTimes = 1;
+ 168   2          }
+ 169   1      
+ 170   1          // Check stable freq
+ 171   1          if(CSyncPhyFreqForRightCount(_TMDS_Freq_Right_Count, 1) == _TRUE)
+ 172   1          {
+ 173   2              if(GET_TMDS_INITIAL())
+ 174   2              {
+ 175   3                  if((abs(g_usDVITMDSFreq - g_usTMDSFreq1)) <= ((g_usTMDSFreq / 100) + 1))
+ 176   3                  {
+ 177   4                      g_bNoResetPhyFlag = _TRUE;
+ 178   4                  }
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 4   
+
+ 179   3                  else
+ 180   3                  {
+ 181   4                      g_bNoResetPhyFlag = _FALSE;
+ 182   4                  }
+ 183   3              }
+ 184   2              else
+ 185   2              {
+ 186   3                  g_bNoResetPhyFlag = _FALSE;
+ 187   3              }
+ 188   2      
+ 189   2              CLR_TMDS_INITIAL();
+ 190   2              g_usDVITMDSFreq = g_usTMDSFreq1;
+ 191   2              g_usTMDSFreq = g_usTMDSFreq1;
+ 192   2          }
+ 193   1          else
+ 194   1          {
+ 195   2              // Format Detect: Manual DVI
+ 196   2              CScalerPageSelect(_PAGE2);
+ 197   2              CScalerSetDataPortBit(_P2_HDMI_ADDR_PORT_C9, _P2_HDMI_SCR_00, ~(_BIT3 | _BIT2), _BIT3);
+ 198   2              g_bNoResetPhyFlag = _FALSE;
+ 199   2              CLR_TMDS_INITIAL();
+ 200   2              return _FALSE;
+ 201   2          }
+ 202   1      
+ 203   1          // Fix SearchTimes when finding stable signal
+ 204   1          if((g_bHDMISearchTimesResetFlag == 1) && (g_ucSearchTimes <= 50))
+ 205   1          {
+ 206   2              g_ucSearchTimes = 50;
+ 207   2              g_bHDMISearchTimesResetFlag = 0;
+ 208   2          }
+ 209   1      
+ 210   1          if(g_bNoResetPhyFlag == _TRUE)
+ 211   1          {
+ 212   2              g_bNoResetPhyFlag = _FALSE;
+ 213   2          }
+ 214   1          else
+ 215   1          {
+ 216   2              // Set PHY parameters
+ 217   2              CSyncModeSetPhy();
+ 218   2      
+ 219   2              // Set Manual Mode
+ 220   2              CScalerPageSelect(_PAGEB);
+ 221   2              CScalerSetByte(_PB_DP_RXMISC_02_AF, 0xC7);
+ 222   2      
+ 223   2              // Reset PHY parameters
+ 224   2              CSyncScanInputPortResetPhy();
+ 225   2      
+ 226   2              // Wait for CDR ready
+ 227   2              CTimerDelayXms(10);
+ 228   2              CScalerPageSelect(_PAGEB);
+ 229   2              CScalerSetByte(_PB_DP_FLD_04_A8, 0xF0);
+ 230   2              CScalerRead(_PB_DP_FLD_04_A8, 1, pData, _NON_AUTOINC);
+ 231   2      
+ 232   2              if((pData[0] & 0xF0) != 0xF0)
+ 233   2              {
+ 234   3                  return _FALSE;
+ 235   3              }
+ 236   2          }
+ 237   1      
+ 238   1      #elif(_SCALER_TYPE == _RTD2545LR)
+              
+                  CScalerPageSelect(_PAGEB);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 5   
+
+              
+                  CScalerSetByte(_PB_DP_RXMISC_02_AF, 0x87);
+                  CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x16);
+                  CScalerSetByte(_PB_DP_AUX_00_B3, 0x92);
+                  CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x7f);
+                  CScalerSetByte(_PB_DP_FLD_05_A9, 0xc2);
+                  CScalerSetByte(_PB_DP_FLD_06_AA, 0x85);
+                  CScalerSetByte(_PB_DP_FLD_07_AB, 0x0a);
+              
+                  CSyncScanInputPortResetPhy();
+                  CSyncModeSetPhy();
+              
+                  CScalerSetByte(_PB_DP_RXMISC_02_AF, 0xC7);
+              
+                  CSyncScanInputPortResetPhy();
+                  CTimerDelayXms(100);
+              
+                  if(ucCurrState == _SLEEP_STATE)
+                  {
+                      CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+                  }
+                  else
+                  {
+                      CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x7f);
+                  }
+              
+              #endif  // End of #if(_SCALER_TYPE == _RTD2472D)
+ 268   1      
+ 269   1          // HDMI/DVI detect: Auto mode
+ 270   1          CScalerPageSelect(_PAGE2);
+ 271   1      
+ 272   1          CScalerSetDataPortBit(_P2_HDMI_ADDR_PORT_C9, _P2_HDMI_SCR_00, ~(_BIT3 | _BIT1 | _BIT0), _BIT1);
+ 273   1      
+ 274   1          CTimerDelayXms(200); // for VG870: 200ms
+ 275   1      
+ 276   1          // Detect HDMI or DVI
+ 277   1          if(CHdmiFormatDetect()) // HDMI
+ 278   1          {
+ 279   2              CScalerPageSelect(_PAGE2);
+ 280   2              CScalerSetDataPortBit(_P2_HDMI_ADDR_PORT_C9, 0x02, ~_BIT3, _BIT3);
+ 281   2              CScalerSetDataPortBit(_P2_HDMI_ADDR_PORT_C9, 0x02, ~_BIT1, 0x00);
+ 282   2              CTimerDelayXms(5);
+ 283   2              CScalerSetByte(_P2_HDMI_ADDR_PORT_C9, 0x02);
+ 284   2              CScalerRead(_P2_HDMI_DATA_PORT_CA, 1, &pData[0], _NON_AUTOINC);
+ 285   2      
+ 286   2              if((pData[0] & 0x02) == 0x02)
+ 287   2              {
+ 288   3                  return _FALSE;
+ 289   3              }
+ 290   2      
+ 291   2              // DE-only mode disable
+ 292   2              CScalerPageSelect(_PAGE2);
+ 293   2              CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~_BIT7, 0x00);
+ 294   2      
+ 295   2              // Set HDMI source
+ 296   2              SET_INPUTSOURCE_TYPE(_SOURCE_HDMI);
+ 297   2          }
+ 298   1          else                    //DVI
+ 299   1          {
+ 300   2              if((g_usTMDSFreq >= 20) && (g_usTMDSFreq <= 165))
+ 301   2              {
+ 302   3                  // DE-only mode enable
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 6   
+
+ 303   3                  CScalerPageSelect(_PAGE2);
+ 304   3                  CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~_BIT7, _BIT7);
+ 305   3              }
+ 306   2              else
+ 307   2              {
+ 308   3                  // DE-only mode disable
+ 309   3                  CScalerPageSelect(_PAGE2);
+ 310   3                  CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~_BIT7, 0x00);
+ 311   3              }
+ 312   2      
+ 313   2              // Set DVI source
+ 314   2              SET_INPUTSOURCE_TYPE(_SOURCE_DVI);
+ 315   2          }
+ 316   1      
+ 317   1          // RGBHV detect
+ 318   1          for(cnt0 = 0; cnt0 < 2; cnt0++)
+ 319   1          {
+ 320   2              CScalerPageSelect(_PAGE2);
+ 321   2              CScalerSetByte(_P2_TMDS_CTRL_A4, 0xf8);
+ 322   2      
+ 323   2              CTimerWaitForEvent(_EVENT_IVS);
+ 324   2              CTimerWaitForEvent(_EVENT_IVS);
+ 325   2      
+ 326   2              CScalerRead(_P2_TMDS_CTRL_A4, 1, pData, _NON_AUTOINC);
+ 327   2      
+ 328   2              if(GET_INPUTSOURCE_TYPE() == _SOURCE_HDMI)
+ 329   2              {
+ 330   3                  pData[0] = ((pData[0] & 0xf8) == 0xf8) ? _TRUE : _FALSE;
+ 331   3              }
+ 332   2              else
+ 333   2              {
+ 334   3                  pData[0] = ((pData[0] & 0xe0) == 0xe0) ? _TRUE : _FALSE;
+ 335   3              }
+ 336   2      
+ 337   2              if(pData[0] == _TRUE)
+ 338   2              {
+ 339   3      #if(_HDMI_SUPPORT == _ON)
+                          if((GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D0_HDMI_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchInd
+             -ex) == _D1_HDMI_PORT))
+                          {
+                              if(CHdmiVideoSetting() == _FALSE)
+                              {
+                                  return _FALSE;
+                              }
+                          }
+                          else
+                          {
+                              CHdmiVideoSetting();
+              
+              #if(_HDMI_FROM_DVI_CONNECT == _OFF)
+                              if(CHdmiFormatDetect())
+                              {
+                                  return _FALSE;
+                              }
+              #endif
+                          }
+              #else
+ 359   3                  if((GET_INPUTPORT_TYPE(g_ucSearchIndex) != _D0_HDMI_PORT) && (GET_INPUTPORT_TYPE(g_ucSearchInd
+             -ex) != _D1_HDMI_PORT))
+ 360   3                  {
+ 361   4      
+ 362   4      #if(_HDMI_FROM_DVI_CONNECT == _OFF)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 7   
+
+ 363   4                      if(CHdmiFormatDetect())
+ 364   4                      {
+ 365   5                          return _FALSE;
+ 366   5                      }
+ 367   4      #endif
+ 368   4                  }
+ 369   3      #endif  // End of #if(_HDMI_SUPPORT == _ON)
+ 370   3      
+ 371   3      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2545LR))
+              #if((_HDMI_SUPPORT == _ON) && (_AUDIO_SUPPORT == _ON))
+                  if(GET_INPUTSOURCE_TYPE() == _SOURCE_HDMI)
+                  {
+                      CHdmiAudioInitialSetting();
+                  }
+              #endif
+              #endif
+ 379   3      
+ 380   3                      CPowerTMDSOn();
+ 381   3                      return _TRUE;
+ 382   3              }
+ 383   2          } // End of for(cnt0=0; cnt0<2; cnt0++)
+ 384   1      
+ 385   1          return _FALSE;
+ 386   1      
+ 387   1      }
+ 388          
+ 389          #if(_DP_SUPPORT == _ON)
+              //--------------------------------------------------
+              // Description  : Scan DP input port to obtain if the signal is available
+              // Input Value  : None
+              // Output Value : Return _TRUE if the signal is available
+              //--------------------------------------------------
+              bit CSyncScanInputPortDP(void)
+              {
+              #if(_PCB_TYPE == _RTD2472RD_DEMO_PCB)
+              
+                  if(ucCurrState == _SEARCH_STATE)
+                  {
+                      CDpCableConnect();
+                  }
+              #endif
+              
+                  if(g_ucDpPowerStatus == _DP_POWER_DOWN)
+                  {
+                      return _FALSE;
+                  }
+              
+                  if(ucCurrState == _NOSUPPORT_STATE)
+                  {
+                      g_ucSearchTimes += 1;
+                  }
+              
+                  if(GET_TMDS_INITIAL() == _TRUE)
+                  {
+                      CPowerADCAPLLOff();
+              
+                      CScalerSetByte(_PAGE_SELECT_9F, _PAGEB);
+              
+              #if (_D0_INPUT_PORT_TYPE == _D0_DP_PORT)
+                      CScalerSetByte(_PB_DP_2D_SWITCH_B5, 0x02);
+              #elif(_D1_INPUT_PORT_TYPE == _D1_DP_PORT)
+                      CScalerSetByte(_PB_DP_2D_SWITCH_B5, 0x06);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 8   
+
+              #endif
+              
+              #if(_HDCP_SUPPORT == _ON)
+                      CScalerPageSelect(_PAGE2);
+                      if(GET_INPUT_PORT(g_ucSearchIndex) == _D0_INPUT_PORT)
+                      {
+                          CScalerSetBit(_P2_HDCP_PORT_CTRL_C2, ~_BIT1, (_DDC_CHANNEL_FOR_D0 << 1));
+                      }
+                      else if(GET_INPUT_PORT(g_ucSearchIndex) == _D1_INPUT_PORT)
+                      {
+                          CScalerSetBit(_P2_HDCP_PORT_CTRL_C2, ~_BIT1, (_DDC_CHANNEL_FOR_D1 << 1));
+                      }
+                      CScalerSetBit(_P2_HDCP_CTRL_C0, ~_BIT0, _BIT0);
+              #endif
+              
+                      CLR_TMDS_INITIAL();
+                  }
+              
+                  if((GET_DPHOTPLUG()) && (g_ucDpPowerStatus != _DP_POWER_DOWN))
+                  {
+              #if ((_HPD_TYPE == _HPD_SHORT) || (_HPD_TYPE == _HPD_BOTH))
+                      if(g_ucSearchTimes == 30)
+                      {
+              
+                          if(g_bDpCPIRQ == _TRUE)
+                          {
+                              if(g_ucDisplayPortLtPreStatus == _TRAINING_PATTERN_NONE)
+                              {
+                                  CDpCPIRQ(2);
+                              }
+                          }
+                          else
+                          {
+                              if(g_ucDisplayPortLtPreStatus == _TRAINING_PATTERN_NONE)
+                              {
+              
+              
+                                  CLR_DPHOTPLUG();
+                                  g_bDpCPIRQ = _FALSE;
+                                  CDpShortHotPlugProc(2);  // (1):0.256us , (2):1.262us
+                              }
+                          }
+                      }
+              
+                      else if(g_ucSearchTimes == 25)
+                      {
+                          if(g_bDpCPIRQ == _TRUE)
+                          {
+              
+              
+                              CLR_DPHOTPLUG();
+                              g_bDpCPIRQ = _FALSE;
+                              g_ucDisplayPortLtPreStatus = _TRAINING_PATTERN_NONE;
+                              CDpShortHotPlugProc(20);
+                          }
+                      }
+              
+              #endif // End of #if ((_HPD_TYPE == _HPD_SHORT) || (_HPD_TYPE == _HPD_BOTH))
+                  }
+              
+              
+                  while (g_ucDisplayPortLtPreStatus == _TRAINING_PATTERN_END)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 9   
+
+                  {
+                      g_ucDisplayPortLtPreStatus = _TRAINING_PATTERN_NONE;
+              
+                      if(g_bFakeTPEndPass == _TRUE)
+                      {
+              
+              
+                          CDpFastlinktrainSet();
+                          g_bDpSearchTimesReset = 1;
+                      }
+              
+                      if(g_bDpSearchTimesReset == 1)
+                      {
+              
+              
+                          g_bDpSearchTimesReset = 0;
+                          g_ucSearchTimes = 15;
+                      }
+              
+                      g_bFakeTP1Pass = 0;
+                      g_bFakeTP2Pass = 0;
+              
+                      if(CDpStartupSetting() == _FALSE)
+                      {
+                         return _FALSE;
+                      }
+              
+                      CDpAdjustVsyncDelayCount();
+              
+                      if(CDpIsFifoUnderOverFlow() == _FALSE)
+                      {
+              
+              
+                          CLR_DPHOTPLUG();
+                          g_bDpCPIRQ = _FALSE;
+                          CPowerTMDSOn();
+                          SET_INPUTSOURCE_TYPE(_SOURCE_DP);
+                          g_ucDisplayPortLtPreStatus = _TRAINING_PATTERN_NONE;
+                          return _TRUE;
+                      }
+                      else
+                      {
+              
+                          g_ucDisplayPortLtPreStatus = _TRAINING_PATTERN_END;
+                          return _FALSE;
+                      }
+              
+                  }   // End of while (g_ucDisplayPortLtPreStatus == _TRAINING_PATTERN_END)
+              
+                  if(ucCurrState != _NOSUPPORT_STATE)
+                  {
+                      CTimerDelayXms(25);
+                  }
+              
+                  return _FALSE;
+              }
+              #endif //End of #if(_DP_SUPPORT == _ON)
+ 544          
+ 545          //--------------------------------------------------
+ 546          // Description  : Set Phy Frequency
+ 547          // Input Value  : None
+ 548          // Output Value : None
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 10  
+
+ 549          //--------------------------------------------------
+ 550          void CSyncModeSetPhy(void)
+ 551          {
+ 552   1      #if(_SCALER_TYPE == _RTD2472D)
+ 553   1          CScalerPageSelect(_PAGEB);
+ 554   1          CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT1, 0x00);
+ 555   1      
+ 556   1          if((g_usTMDSFreq > 20) && (g_usTMDSFreq < 50)) // 25~50MHz
+ 557   1          {
+ 558   2              if(g_ucIDCode >= 0x05)  // ver. E
+ 559   2              {
+ 560   3                  // 6048 New Setting
+ 561   3                  CScalerSetByte(_PB_DP_CDR_01_A1, 0x86);
+ 562   3                  CScalerSetByte(_PB_DP_CDR_02_A2, 0x3D);
+ 563   3                  CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+ 564   3                  CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT1, _BIT1);
+ 565   3              }
+ 566   2              else // ver. C/D
+ 567   2              {
+ 568   3                  CScalerSetByte(_PB_DP_CDR_01_A1, 0x82);
+ 569   3                  CScalerSetByte(_PB_DP_CDR_02_A2, 0x39);
+ 570   3                  CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+ 571   3              }
+ 572   2      
+ 573   2              CScalerSetByte(_PB_DP_FLD_09_AD, 0x2F);
+ 574   2              CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF1);
+ 575   2              CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+ 576   2          }
+ 577   1          else if((g_usTMDSFreq >= 50) && (g_usTMDSFreq < 100)) // 55~100MHz
+ 578   1          {
+ 579   2              CScalerSetByte(_PB_DP_CDR_01_A1, 0x42);
+ 580   2              CScalerSetByte(_PB_DP_CDR_02_A2, 0x5a);
+ 581   2              CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+ 582   2              CScalerSetByte(_PB_DP_FLD_09_AD, 0x2F);
+ 583   2              CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF1);
+ 584   2              CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+ 585   2          }
+ 586   1          else if((g_usTMDSFreq >= 100) && (g_usTMDSFreq < 150)) // 100~150MHz
+ 587   1          {
+ 588   2              CScalerSetByte(_PB_DP_CDR_01_A1, 0x72);
+ 589   2              CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);
+ 590   2              CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+ 591   2              CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+ 592   2              CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+ 593   2              CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+ 594   2          }
+ 595   1          else if((g_usTMDSFreq >= 150) && (g_usTMDSFreq < 200)) // 150~200MHz
+ 596   1          {
+ 597   2              CScalerSetByte(_PB_DP_CDR_01_A1, 0x72);
+ 598   2              CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);
+ 599   2              CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+ 600   2              CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+ 601   2              CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+ 602   2              CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+ 603   2          }
+ 604   1          else if((g_usTMDSFreq >= 200) && (g_usTMDSFreq < 340)) // 200~340MHz
+ 605   1          {
+ 606   2              CScalerSetByte(_PB_DP_CDR_01_A1, 0x32);
+ 607   2              CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);
+ 608   2              CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+ 609   2              CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+ 610   2              CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 11  
+
+ 611   2              CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+ 612   2          }
+ 613   1      
+ 614   1      #elif((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+              
+                  CScalerPageSelect(_PAGEB);
+              
+                  CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT1, 0x00);
+              
+                  if((g_usTMDSFreq > 20) && (g_usTMDSFreq < 50)) // 25~50MHz
+                  {
+                      if(g_ucIDCode >= 0x0F) // >= ver.G
+                      {
+                          // 6049 New Setting
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x86);
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0x3D);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+                          CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT1, _BIT1);
+                      }
+                      else
+                      {
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x82);
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0x39);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+                      }
+              
+                      CScalerSetByte(_PB_DP_FLD_09_AD, 0x2F);
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF1);
+                      CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                      CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                  }
+                  else if((g_usTMDSFreq >= 50) && (g_usTMDSFreq < 100)) // 50~67.5MHz
+                  {
+                      CScalerSetByte(_PB_DP_CDR_01_A1, 0x42);
+                      CScalerSetByte(_PB_DP_CDR_02_A2, 0xba);
+                      CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+                      CScalerSetByte(_PB_DP_FLD_09_AD, 0x2F);
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF1);
+                      CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                      CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                  }
+                  else if((g_usTMDSFreq >= 100) && (g_usTMDSFreq < 150)) // 100~150MHz
+                  {
+                      CScalerSetByte(_PB_DP_CDR_01_A1, 0x72);
+                      CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);//0x51
+                      CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+                      CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+                      CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                      CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                  }
+                  else if((g_usTMDSFreq >= 150) && (g_usTMDSFreq < 200)) // 150~200MHz
+                  {
+                      CScalerSetByte(_PB_DP_CDR_01_A1, 0x72);
+                      CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);//0x51
+                      CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+                      CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+                      CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                      CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                  }
+                  else if((g_usTMDSFreq >= 200) && (g_usTMDSFreq < 340)) // 200~340MHz
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 12  
+
+                  {
+                      CScalerSetByte(_PB_DP_CDR_01_A1, 0x32);
+                      CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);
+                      CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+                      CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+                      CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                      CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x7E); // enable boost2
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xf4); //more HPF
+                  }
+              
+              #elif(_SCALER_TYPE == _RTD2545LR)
+              
+                  CScalerPageSelect(_PAGEB);
+                  CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT1, 0x00);
+              
+                  CScalerRead(_PB_DP_FLD_03_A7, 1, pData, _NON_AUTOINC);
+                  pData[0] &= 0xf0;
+              
+                  if(pData[0] == 0x80) // 25~50MHz
+                  {
+                      if(g_ucIDCode >= 0x55) // >= ver.E
+                      {
+                          // 6050 New Setting
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x86);
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0x3D);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+                          CScalerSetBit(_PB_DP_FLD_08_AC, ~_BIT1, _BIT1);
+                      }
+                      else
+                      {
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x82);
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0x39);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+                      }
+              
+                      CScalerSetByte(_PB_DP_FLD_09_AD, 0x2F);
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF1);
+                      CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                      CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                  }
+                  else if(pData[0] == 0xb0) // 50~100MHz
+                  {
+                      CScalerSetByte(_PB_DP_FLD_05_A9, 0x2c);
+                      CScalerSetByte(_PB_DP_FLD_06_AA, 0x4F);
+                      CScalerSetByte(_PB_DP_FLD_07_AB, 0xb2);
+                      CSyncScanInputPortResetPhy();
+              
+                      CScalerRead(_PB_DP_FLD_03_A7, 1, pData, _NON_AUTOINC);
+                      pData[0] &= 0xf0;
+                      if(pData[0] == 0xb0) //50~67.5MHz
+                      {
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x40);
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0xba);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+                          CScalerSetByte(_PB_DP_FLD_09_AD, 0x2F);
+                          CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF1);
+                          CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                          CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                      }
+                      else if(pData[0] == 0x70) //67.5~100MHz
+                      {
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x40);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 13  
+
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0xba);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x94);
+                          CScalerSetByte(_PB_DP_FLD_09_AD, 0x2F);
+                          CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF1);
+                          CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                          CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                      }
+                  }
+                  else if(pData[0] == 0x70) // 100~200MHz
+                  {
+                      CScalerSetByte(_PB_DP_FLD_05_A9, 0x2c);
+                      CScalerSetByte(_PB_DP_FLD_06_AA, 0x59);
+                      CScalerSetByte(_PB_DP_FLD_07_AB, 0xb2);
+              
+                      CSyncScanInputPortResetPhy();
+              
+                      CScalerRead(_PB_DP_FLD_03_A7, 1, pData, _NON_AUTOINC);
+                      pData[0] &= 0xf0;
+              
+                      if(pData[0] == 0x70) //100~150MHz
+                      {
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x70);
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+                          CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+                          CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+                          CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                          CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                      }
+                      else if(pData[0] == 0x30) //150~200MHz
+                      {
+                          CScalerSetByte(_PB_DP_CDR_01_A1, 0x70);
+                          CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);
+                          CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+                          CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+                          CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+                          CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                          CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+                      }
+                  }
+                  else if(pData[0] == 0x30) // 200~340MHz
+                  {
+                      CScalerSetByte(_PB_DP_CDR_01_A1, 0x30);
+                      CScalerSetByte(_PB_DP_CDR_02_A2, 0x21);
+                      CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+                      CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+                      CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                      CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x7E); // enable boost2
+                      CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xf4); //more HPF
+                  }
+              
+              #endif  // End of #if(_SCALER_TYPE == _RTD2472D)
+ 788   1      
+ 789   1          CScalerPageSelect(_PAGEB);
+ 790   1          CScalerSetByte(_PB_DP_RXMISC_02_AF, 0xC7);
+ 791   1      }
+ 792          
+ 793          #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+ 794          //--------------------------------------------------
+ 795          // Description  : Measure the Phy Frequency
+ 796          // Input Value  : None
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 14  
+
+ 797          // Output Value : Return Phy Frequency
+ 798          //--------------------------------------------------
+ 799          WORD CSyncMeasurePhyFreq(bit bFlag)
+ 800          {
+ 801   1          WORD usTempreadfreq = 0;
+ 802   1      
+ 803   1          CScalerPageSelect(_PAGEB);
+ 804   1      
+ 805   1          if(bFlag == 1)
+ 806   1          {
+ 807   2              // CMU_en & Rx_en
+ 808   2              CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x7F);
+ 809   2          }
+ 810   1          else
+ 811   1          {
+ 812   2              CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+ 813   2          }
+ 814   1      
+ 815   1      
+ 816   1      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+ 817   1      
+ 818   1          CSyncInputPort2DSwitch();
+ 819   1      #endif
+ 820   1      
+ 821   1          CScalerPageSelect(_PAGE2);
+ 822   1      
+ 823   1          // Address auto increase enable
+ 824   1          CScalerSetByte(_P2_HDMI_APC_C8, 0x01);
+ 825   1      
+ 826   1          // Detection clock source select to source clock
+ 827   1          CScalerSetBit(_P2_MAC_MEASURE_FREQ_AB, ~_BIT7, _BIT7);
+ 828   1      
+ 829   1          // Restart measure freq number
+ 830   1          CScalerSetByte(_P2_HDMI_ADDR_PORT_C9, 0x28);
+ 831   1          CScalerSetByte(_P2_HDMI_DATA_PORT_CA, 0x08);
+ 832   1      
+ 833   1          CTimerDelayXms(1);
+ 834   1      
+ 835   1          // Read freq number result
+ 836   1          CScalerSetByte(_P2_HDMI_ADDR_PORT_C9, 0x28);
+ 837   1          CScalerRead(_P2_HDMI_DATA_PORT_CA, 1, &pData[0], _NON_AUTOINC);
+ 838   1      
+ 839   1          CScalerSetByte(_P2_HDMI_ADDR_PORT_C9, 0x29);
+ 840   1          CScalerRead(_P2_HDMI_DATA_PORT_CA, 1, &pData[1], _NON_AUTOINC);
+ 841   1      
+ 842   1          // Calculate freq.
+ 843   1          usTempreadfreq = (((WORD)(pData[0] & 0x07) << 8) | pData[1]);
+ 844   1      
+ 845   1          usTempreadfreq = (WORD)((((DWORD)_RTD_XTAL * 1024) / ((DWORD)usTempreadfreq * 1000)) & 0xffff);
+ 846   1      
+ 847   1          // Address auto increase disable
+ 848   1          CScalerSetByte(_P2_HDMI_APC_C8, 0x00);
+ 849   1      
+ 850   1          CScalerSetBit(_P2_MAC_MEASURE_FREQ_AB, ~_BIT7, 0x00);
+ 851   1      
+ 852   1          return usTempreadfreq;
+ 853   1      
+ 854   1      }
+ 855          
+ 856          //--------------------------------------------------
+ 857          // Description  : Count the Right Phy Frequency
+ 858          // Input Value  : None
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 15  
+
+ 859          // Output Value : Return the right count
+ 860          //--------------------------------------------------
+ 861          bit CSyncPhyFreqForRightCount(BYTE ucCountNum, BYTE ucDelayTime)
+ 862          {
+ 863   1      
+ 864   1      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+ 865   1      
+ 866   1      
+ 867   1          BYTE ucCountData = 0, cnt0 = 0;
+ 868   1      
+ 869   1          if(ucCurrState == _SLEEP_STATE)
+ 870   1          {
+ 871   2              g_usTMDSFreq0 = CSyncMeasurePhyFreq(0);
+ 872   2          }
+ 873   1          else
+ 874   1          {
+ 875   2              g_usTMDSFreq0 = CSyncMeasurePhyFreq(1);
+ 876   2          }
+ 877   1      
+ 878   1          // Block no support freq
+ 879   1          if ((g_usTMDSFreq0 < 20) || (g_usTMDSFreq0 > 340))
+ 880   1          {
+ 881   2              return _FALSE;
+ 882   2          }
+ 883   1      
+ 884   1          for(cnt0 = 0; cnt0 < ucCountNum; cnt0++)
+ 885   1          {
+ 886   2              CTimerDelayXms(ucDelayTime);
+ 887   2      
+ 888   2              if(ucCurrState == _SLEEP_STATE)
+ 889   2              {
+ 890   3                  g_usTMDSFreq1 = CSyncMeasurePhyFreq(0);
+ 891   3              }
+ 892   2              else
+ 893   2              {
+ 894   3                  g_usTMDSFreq1 = CSyncMeasurePhyFreq(1);
+ 895   3              }
+ 896   2      
+ 897   2              if(abs((g_usTMDSFreq0 - g_usTMDSFreq1)) <= ((g_usTMDSFreq0 / 100) + 1))
+ 898   2              {
+ 899   3                  ucCountData++;
+ 900   3              }
+ 901   2          }
+ 902   1      
+ 903   1          if(ucCountData == ucCountNum)
+ 904   1          {
+ 905   2              return _TRUE;
+ 906   2          }
+ 907   1          else
+ 908   1          {
+ 909   2              return _FALSE;
+ 910   2          }
+ 911   1      
+ 912   1      #else  // Else of #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RT
+             -D2472D))
+              
+                  BYTE ucCountData = 0, cnt0 = 0;
+                  WORD usTempfreq0 = 0, usTempfreq1 = 0;
+              
+                  usTempfreq0 = CSyncMeasurePhyFreq(1);
+              
+                  for(cnt0 = 0; cnt0 < ucCountNum; cnt0++)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 16  
+
+                  {
+                      CTimerDelayXms(ucDelayTime);
+                      usTempfreq1 = CSyncMeasurePhyFreq(1);
+              
+                      if (abs((usTempfreq0 - usTempfreq1)) <= ((usTempfreq0 / 100) + 1))
+                      {
+                          ucCountData++;
+                      }
+                  }
+              
+                  if(ucCountData == ucCountNum)
+                  {
+                      return _TRUE;
+                  }
+                  else
+                  {
+                      return _FALSE;
+                  }
+              
+              #endif
+ 940   1      }
+ 941          
+ 942          
+ 943          //--------------------------------------------------
+ 944          // Description  : Power off Phy Z0
+ 945          // Input Value  : None
+ 946          // Output Value : None
+ 947          //--------------------------------------------------
+ 948          void CSyncPhyZ0PowerOff(void)
+ 949          {
+ 950   1          CScalerPageSelect(_PAGEB);
+ 951   1          CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+ 952   1      }
+ 953          
+ 954          bit CSyncCheckTMDSFreq(void)
+ 955          {
+ 956   1          WORD usPresentReadFreq = 0;
+ 957   1      
+ 958   1          // CMU_en & Rx_en
+ 959   1          CScalerPageSelect(_PAGEB);
+ 960   1          CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x7F);
+ 961   1      
+ 962   1          CScalerPageSelect(_PAGE2);
+ 963   1      
+ 964   1          // Address auto increase
+ 965   1          CScalerSetByte(_P2_HDMI_APC_C8, 0x01);
+ 966   1      
+ 967   1          // Detection clock source select to source clock
+ 968   1          CScalerSetBit(_P2_MAC_MEASURE_FREQ_AB, ~_BIT7, _BIT7);
+ 969   1      
+ 970   1          // Restart measure freq number
+ 971   1          CScalerSetByte(_P2_HDMI_ADDR_PORT_C9, 0x28);
+ 972   1          CScalerSetByte(_P2_HDMI_DATA_PORT_CA, 0x08);
+ 973   1      
+ 974   1          CTimerDelayXms(1);
+ 975   1      
+ 976   1          // Read freq number result
+ 977   1          CScalerSetByte(_P2_HDMI_ADDR_PORT_C9, 0x28);
+ 978   1          CScalerRead(_P2_HDMI_DATA_PORT_CA, 1, &pData[0], _NON_AUTOINC);
+ 979   1      
+ 980   1          CScalerSetByte(_P2_HDMI_ADDR_PORT_C9, 0x29);
+ 981   1          CScalerRead(_P2_HDMI_DATA_PORT_CA, 1, &pData[1], _NON_AUTOINC);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 17  
+
+ 982   1      
+ 983   1          // Calculate freq.
+ 984   1          usPresentReadFreq = (((WORD)(pData[0] & 0x07) << 8) | pData[1]);
+ 985   1      
+ 986   1          usPresentReadFreq = (WORD)((((DWORD)_RTD_XTAL * 1024) / ((DWORD)usPresentReadFreq * 1000)) & 0xffff);
+ 987   1      
+ 988   1          // Address auto increase disable
+ 989   1          CScalerSetByte(_P2_HDMI_APC_C8, 0x00);
+ 990   1      
+ 991   1          CScalerSetBit(_P2_MAC_MEASURE_FREQ_AB, ~_BIT7, 0x00);
+ 992   1      
+ 993   1          // Check Freq. with the one in sync.c
+ 994   1          if((abs(g_usTMDSFreq -  usPresentReadFreq)) <= ((g_usTMDSFreq / 100) + 1))
+ 995   1          {
+ 996   2              return _TRUE;
+ 997   2          }
+ 998   1      
+ 999   1          return _FALSE;
+1000   1      }
+1001          #endif // End of #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+1002          
+1003          //--------------------------------------------------
+1004          // Description  : Input Port DVI/HDMI Wake Up Detect
+1005          // Input Value  : None
+1006          // Output Value : None
+1007          //--------------------------------------------------
+1008          bit CSyncTMDSWakeUpDetect(void)
+1009          {
+1010   1      #if(_SCALER_TYPE == _RTD2545LR)
+                  BYTE cnt0 = 0, cnt1 = 0;
+              #endif
+1013   1      
+1014   1          BYTE cnt2 = 0;
+1015   1      
+1016   1          CScalerPageSelect(_PAGEB);
+1017   1          CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+1018   1      
+1019   1          CSyncInputPort2DSwitch();
+1020   1      
+1021   1          CTimerDelayXms(5);
+1022   1      
+1023   1      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+1024   1      
+1025   1          CScalerPageSelect(_PAGE2);
+1026   1          CScalerRead(_P2_UP_DOWN_CTRL1_B6, 1, pData, _NON_AUTOINC);
+1027   1      
+1028   1          if((pData[0] & 0x80) == 0x80)   // no clock
+1029   1          {
+1030   2              CSyncPhyZ0PowerOff();
+1031   2              return _FALSE;
+1032   2          }
+1033   1          else
+1034   1          {
+1035   2              ((WORD *)pData)[6] = CSyncMeasurePhyFreq(0);
+1036   2              ((WORD *)pData)[7] = CSyncMeasurePhyFreq(0);
+1037   2      
+1038   2              if(abs(((WORD *)pData)[7] - ((WORD *)pData)[6]) > ((g_usTMDSFreq / 100) + 1))
+1039   2              {
+1040   3                  return _FALSE;
+1041   3              }
+1042   2      
+1043   2              // Solve OSD respond time in sleep
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 18  
+
+1044   2              if(g_ucSearchTimes >= 3)
+1045   2              {
+1046   3                  g_ucSearchTimes = g_ucSearchTimes - 3;
+1047   3              }
+1048   2              else
+1049   2              {
+1050   3                  g_ucSearchTimes = 1;
+1051   3              }
+1052   2      
+1053   2              if(CSyncPhyFreqForRightCount(_TMDS_Freq_SLEEP_Right_Count, 1) == _TRUE)
+1054   2              {
+1055   3                  CScalerPageSelect(_PAGEB);
+1056   3                  CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x7F);
+1057   3      
+1058   3                  g_usDVITMDSFreq = g_usTMDSFreq1;
+1059   3                  g_usTMDSFreq = g_usTMDSFreq1;
+1060   3      
+1061   3                  CSyncModeSetPhy();
+1062   3      
+1063   3                  CScalerPageSelect(_PAGEB);
+1064   3      
+1065   3                  CScalerSetByte(_PB_DP_RXMISC_02_AF, 0xC7);
+1066   3                  CSyncScanInputPortResetPhy();
+1067   3      
+1068   3                  cnt2 = 0;
+1069   3      
+1070   3                  do
+1071   3                  {
+1072   4                      CTimerDelayXms(10);
+1073   4                      CScalerPageSelect(_PAGEB);
+1074   4                      CScalerSetByte(_PB_DP_FLD_04_A8, 0xF0);
+1075   4                      CScalerRead(_PB_DP_FLD_04_A8, 1, pData, _NON_AUTOINC);
+1076   4                      cnt2++;
+1077   4      
+1078   4                  }
+1079   3                  while(((pData[0] & 0xF0) != 0xF0) && (cnt2 < 20)); // cnt0 < 20 ---> 200ms
+1080   3      
+1081   3                  // HDMI/DVI detect: Auto mode
+1082   3                  CScalerPageSelect(_PAGE2);
+1083   3                  CScalerSetDataPortBit(_P2_HDMI_ADDR_PORT_C9, _P2_HDMI_SCR_00, ~(_BIT3 | _BIT1 | _BIT0), _BIT1)
+             -;
+1084   3      
+1085   3                  // Wait for detect
+1086   3                  CTimerWaitForEvent(_EVENT_IVS);
+1087   3                  CTimerWaitForEvent(_EVENT_IVS);
+1088   3      
+1089   3                  if(CHdmiFormatDetect()) // HDMI
+1090   3                  {
+1091   4                      CScalerPageSelect(_PAGE2);
+1092   4                      CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~_BIT7, 0x00);
+1093   4                      SET_INPUTSOURCE_TYPE(_SOURCE_HDMI);
+1094   4                  }
+1095   3                  else                    //DVI
+1096   3                  {
+1097   4                      CScalerPageSelect(_PAGE2);
+1098   4                      CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~_BIT7, _BIT7);
+1099   4                      SET_INPUTSOURCE_TYPE(_SOURCE_DVI);
+1100   4                  }
+1101   3      
+1102   3                  CScalerPageSelect(_PAGE2);
+1103   3                  CScalerSetByte(_P2_TMDS_CTRL_A4, 0xf8);
+1104   3      
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 19  
+
+1105   3                  CTimerWaitForEvent(_EVENT_IVS);
+1106   3                  CTimerWaitForEvent(_EVENT_IVS);
+1107   3      
+1108   3                  CScalerRead(_P2_TMDS_CTRL_A4, 1, &pData, _NON_AUTOINC);
+1109   3      
+1110   3                  if(GET_INPUTSOURCE_TYPE() == _SOURCE_HDMI)
+1111   3                  {
+1112   4                      pData[0] = ((pData[0] & 0xf8) == 0xf8) ? _TRUE : _FALSE;
+1113   4                  }
+1114   3                  else
+1115   3                  {
+1116   4                      pData[0] = ((pData[0] & 0xe0) == 0xe0) ? _TRUE : _FALSE;
+1117   4                  }
+1118   3      
+1119   3                  if(pData[0] == _TRUE)
+1120   3                  {
+1121   4                      return _TRUE;   // Hsync, Vsync is available
+1122   4                  }
+1123   3                  else
+1124   3                  {
+1125   4                      CSyncPhyZ0PowerOff();
+1126   4                      return _FALSE;  // Hsync, Vsync is not available
+1127   4                  }
+1128   3              }
+1129   2              else
+1130   2              {
+1131   3                  CSyncPhyZ0PowerOff();
+1132   3      
+1133   3                  return _FALSE;      //Clock Unstable
+1134   3              }
+1135   2          }
+1136   1      
+1137   1      
+1138   1      #elif(_SCALER_TYPE == _RTD2545LR)
+              
+                  for(cnt0 = 0; cnt0 < 4; cnt0++)
+                  {
+                      CScalerPageSelect(_PAGE2);
+                      CScalerRead(_P2_UP_DOWN_CTRL1_B6, 1, pData, _NON_AUTOINC);
+                      pData[0] = ((pData[0] & 0x80) == 0x80) ? _FALSE : _TRUE;
+                      if(pData[0])
+                      {
+                          CScalerPageSelect(_PAGEB);
+                          CScalerSetByte(_PB_DIG00_E0, 0xD0);
+              
+                          CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+                          CScalerSetByte(_PB_DP_RXMISC_02_AF, 0x87);
+                          CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x16);
+                          CScalerSetByte(_PB_DP_AUX_00_B3, 0x92);
+              
+                          CScalerSetByte(_PB_DP_FLD_05_A9, 0x0b);
+                          CScalerSetByte(_PB_DP_FLD_06_AA, 0x17);
+                          CScalerSetByte(_PB_DP_FLD_07_AB, 0x1d);
+              
+                          CSyncScanInputPortResetPhy();
+                          CTimerDelayXms(2);
+                          CScalerRead(_PB_DP_FLD_03_A7, 1, pData, _NON_AUTOINC);
+                          pData[0] &= 0xf0;
+                          if(pData[0] == 0x30)
+                          {
+                              cnt1++;
+                          }
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 20  
+
+                          else
+                          {
+                              cnt1 = 0;
+                              return _FALSE;
+                          }
+                      }
+                  }
+              
+                  CScalerSetByte(_PB_DP_AUX_00_B3, 0x92); // OOBS manual mode enable, bit 7
+              
+                  CScalerPageSelect(_PAGEB);
+                  CScalerSetByte(_PB_DP_FLD_05_A9, 0xc4);
+                  CScalerSetByte(_PB_DP_FLD_06_AA, 0x82);
+                  CScalerSetByte(_PB_DP_FLD_07_AB, 0x0a);
+              
+                  CSyncScanInputPortResetPhy();
+                  CTimerDelayXms(10);
+                  CScalerRead(_PB_DP_FLD_03_A7, 1, pData, _NON_AUTOINC);
+                  pData[0] &= 0xf0;
+              
+                  if(pData[0] == 0x80)
+                  {
+                      CScalerSetByte(_PB_DP_FLD_05_A9, 0x1f);
+                      CScalerSetByte(_PB_DP_FLD_06_AA, 0x2d);
+                      CScalerSetByte(_PB_DP_FLD_07_AB, 0x44);
+                  }
+                  else if(pData[0] == 0xb0)
+                  {
+                      CScalerSetByte(_PB_DP_FLD_05_A9, 0x44);
+                      CScalerSetByte(_PB_DP_FLD_06_AA, 0x6c);
+                      CScalerSetByte(_PB_DP_FLD_07_AB, 0x82);
+                  }
+                  else if(pData[0] == 0x70)
+                  {
+                      CScalerSetByte(_PB_DP_FLD_05_A9, 0xff);
+                      CScalerSetByte(_PB_DP_FLD_06_AA, 0xc9);
+                      CScalerSetByte(_PB_DP_FLD_07_AB, 0x0a);
+                  }
+                  else
+                  {
+                      CScalerSetByte(_PB_DP_FLD_05_A9, 0xff);
+                      CScalerSetByte(_PB_DP_FLD_06_AA, 0xff);
+                      CScalerSetByte(_PB_DP_FLD_07_AB, 0x32);
+                  }
+              
+                  cnt1 = 0;
+              
+                  for(cnt0 = 0; cnt0 < 30; cnt0++)
+                  {
+                      CScalerPageSelect(_PAGE2);
+                      CScalerRead(_P2_UP_DOWN_CTRL1_B6, 1, pData, _NON_AUTOINC);
+                      pData[0] = ((pData[0] & 0x80) == 0x80) ? _FALSE : _TRUE;
+              
+                      if(pData[0] == _TRUE)
+                      {
+                          CScalerPageSelect(_PAGEB);
+                          CScalerSetByte(_PB_DIG00_E0, 0xD0);
+              
+                          CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+                          CScalerSetByte(_PB_DP_RXMISC_02_AF, 0x87);
+                          CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x16);
+                          CScalerSetByte(_PB_DP_AUX_00_B3, 0x92);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 21  
+
+              
+                          CSyncScanInputPortResetPhy();
+                          CTimerDelayXms(2);
+                          CScalerRead(_PB_DP_FLD_03_A7, 1, pData, _NON_AUTOINC);
+                          pData[0] &= 0xf0;
+              
+                          if(cnt0 == 0)
+                          {
+                              pData[1] = pData[0];
+                          }
+                          if((pData[0] == pData[1]) && (pData[0] != 0x80) && (pData[0] != 0x30))
+                          {
+                              cnt1++;
+                          }
+                          else
+                          {
+                              cnt1 = 0;
+                              return _FALSE;
+                          }
+                      }
+                  }
+              
+                  cnt1 = 0;
+              
+                  for(cnt0 = 0; cnt0 < 30; cnt0++)
+                  {
+                      CScalerPageSelect(_PAGE2);
+                      CScalerRead(_P2_UP_DOWN_CTRL1_B6, 1, pData, _NON_AUTOINC);
+                      pData[0] = ((pData[0] & 0x80) == 0x80) ? _FALSE : _TRUE;
+              
+                      if(pData[0] == _TRUE)
+                      {
+                          CScalerPageSelect(_PAGEB);
+                          CScalerSetByte(_PB_DIG00_E0, 0xD0);
+              
+                          CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+                          CScalerSetByte(_PB_DP_RXMISC_02_AF, 0x87);
+                          CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x16);
+                          CScalerSetByte(_PB_DP_AUX_00_B3, 0x92);
+              
+                          CSyncScanInputPortResetPhy();
+                          CTimerDelayXms(2);
+                          CScalerRead(_PB_DP_FLD_03_A7, 1, pData, _NON_AUTOINC);
+                          pData[0] &= 0xf0;
+              
+                          if(cnt0 == 0)
+                          {
+                              pData[1] = pData[0];
+                          }
+              
+                          if((pData[0] == pData[1]) && (pData[0] != 0x80) && (pData[0] != 0x30))
+                          {
+                              cnt1++;
+              
+                              if(cnt1 == 30)
+                              {
+                                  CScalerPageSelect(_PAGEB);
+                                  CScalerSetByte(_PB_DP_CDR_03_A3, 0x8c);
+                                  CScalerSetByte(_PB_DP_FLD_09_AD, 0x07);
+                                  CScalerSetByte(_PB_DP_RESERVED_05_BF, 0xF0);
+                                  CScalerSetByte(_PB_DP_RXMISC_01_AE, 0x01);
+                                  CScalerSetByte(_PB_DP_ADP_EQ_B2, 0x76);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 22  
+
+                                  CScalerSetByte(_PB_DP_RXMISC_02_AF, 0xC7);
+                                  CScalerSetByte(_PB_DIG01_E1, 0xf0);
+                                  CSyncScanInputPortResetPhy();
+              
+                                  CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x7f);
+              
+                                  CScalerPageSelect(_PAGE2);
+                                  CScalerSetByte(0xa4, 0xf8);
+                                  CTimerDelayXms(30);
+                                  CScalerRead(0xa4, 1, pData, _NON_AUTOINC);
+              
+                                  pData[0] = ((pData[0] & 0xf8) == 0xf8) ? _TRUE : _FALSE;
+                                  if(pData[0])
+                                  {
+              
+                                      CScalerPageSelect(_PAGEB);
+              
+                                      CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x7f);
+                                      return _TRUE;
+                                  }
+                                  else
+                                  {
+                                      CScalerPageSelect(_PAGEB);
+                                      CScalerSetByte(_PB_DP_PWR_CTL_B4, 0x08);
+                                      cnt1 = 0;
+              
+                                      return _FALSE;
+                                  }
+                              }
+                          }
+                          else
+                          {
+                              cnt1 = 0;
+                              return _FALSE;
+                          }
+                      }
+                  }  // End of for(cnt0=0; cnt0<30; cnt0++)
+              
+              #endif  // End of #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+1330   1      }
+1331          
+1332          #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2472D))
+1333          //--------------------------------------------------
+1334          // Description  : Input Port 2D Initial
+1335          // Input Value  : None
+1336          // Output Value : None
+1337          //--------------------------------------------------
+1338          void CSyncInputPort2DInitial(void)
+1339          {
+1340   1          if(!((GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D0_HDMI_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIndex) ==
+             - _D1_HDMI_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D0_DVI_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D1_
+             -DVI_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D0_DVI_I_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D1_DVI_
+             -I_PORT)))
+1341   1          {
+1342   2              if((_D0_INPUT_PORT_TYPE == _D0_HDMI_PORT) || (_D0_INPUT_PORT_TYPE == _D0_DVI_PORT ) || (_D0_INPUT_
+             -PORT_TYPE == _D0_DVI_I_PORT))
+1343   2              {
+1344   3                  CScalerPageSelect(_PAGE2);
+1345   3                  CScalerSetBit(_P2_HDCP_PORT_CTRL_C2, ~_BIT1, (_DDC_CHANNEL_FOR_D1 << 1));
+1346   3      
+1347   3                  CScalerPageSelect(_PAGEB);
+1348   3                  CScalerSetByte(_PB_DP_2D_SWITCH_B5, 0x06);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 23  
+
+1349   3              }
+1350   2              else if((_D1_INPUT_PORT_TYPE == _D1_HDMI_PORT) || (_D1_INPUT_PORT_TYPE == _D1_DVI_PORT ) || (_D1_I
+             -NPUT_PORT_TYPE == _D1_DVI_I_PORT))
+1351   2              {
+1352   3                  CScalerPageSelect(_PAGE2);
+1353   3                  CScalerSetBit(_P2_HDCP_PORT_CTRL_C2, ~_BIT1, (_DDC_CHANNEL_FOR_D0 << 1));
+1354   3      
+1355   3                  CScalerPageSelect(_PAGEB);
+1356   3                  CScalerSetByte(_PB_DP_2D_SWITCH_B5, 0x02);
+1357   3              }
+1358   2          }
+1359   1      
+1360   1          // for DP HDCP
+1361   1          CScalerPageSelect(_PAGE2);
+1362   1          CScalerSetBit(_P2_Z0CC2_AC, ~_BIT6, 0x00);
+1363   1      }
+1364          #endif  // End of #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+1365          
+1366          //--------------------------------------------------
+1367          // Description  : Input Port 2D Switch
+1368          // Input Value  : None
+1369          // Output Value : None
+1370          //--------------------------------------------------
+1371          void CSyncInputPort2DSwitch(void)
+1372          {
+1373   1          CScalerPageSelect(_PAGE2);
+1374   1      
+1375   1          if(GET_INPUT_PORT(g_ucSearchIndex) == _D0_INPUT_PORT)
+1376   1          {
+1377   2              CScalerSetBit(_P2_HDCP_PORT_CTRL_C2, ~_BIT1, (_DDC_CHANNEL_FOR_D0 << 1));
+1378   2          }
+1379   1          else if(GET_INPUT_PORT(g_ucSearchIndex) == _D1_INPUT_PORT)
+1380   1          {
+1381   2              CScalerSetBit(_P2_HDCP_PORT_CTRL_C2, ~_BIT1, (_DDC_CHANNEL_FOR_D1 << 1));
+1382   2          }
+1383   1      
+1384   1      #if((_TMDS_SUPPORT == _ON) || (_HDMI_SUPPORT == _ON))
+1385   1      
+1386   1          if((GET_INPUTPORT_TYPE(g_ucSearchIndex) == _D0_HDMI_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIndex) == _
+             -D1_HDMI_PORT))
+1387   1          {
+1388   2              CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~(_BIT6 | _BIT5), ((_HDMI_BR_SWAP << 6) | (_HDMI_PN_SWAP <
+             -< 5)));
+1389   2          }
+1390   1          else
+1391   1          {
+1392   2          
+1393   2              if(GET_INPUTPORT_TYPE(g_ucSearchIndex) ==_D0_DVI_PORT)
+1394   2                      {
+1395   3                    CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~(_BIT6 | _BIT5 | _BIT4), ((_DVI_BR_SWAP << 6) | (_DVI_PN_S
+             -WAP << 5) | (0x0F)));
+1396   3      #if _DEBUG_MESSAGE_SUPPORT
+1397   3                                        CDebugMessage("DVI_1", 0);
+1398   3      #endif
+1399   3      
+1400   3                      }
+1401   2              /*
+1402   2              else 
+1403   2                      {
+1404   2                      CScalerSetBit(_P2_POWER_ON_OFF_CTRL_A7, ~(_BIT6 | _BIT5 | _BIT4), ((0<< 6) | (_DVI_PN_SWAP << 5) | (0x0F
+             -)));
+1405   2      #if _DEBUG_MESSAGE_SUPPORT
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 24  
+
+1406   2                      CDebugMessage("VGA", 0);
+1407   2      #endif
+1408   2                      }
+1409   2                      */
+1410   2          }
+1411   1      
+1412   1      #endif
+1413   1      
+1414   1              CScalerPageSelect(_PAGEB);
+1415   1      
+1416   1              if(GET_INPUT_PORT(g_ucSearchIndex) == _D0_INPUT_PORT)
+1417   1              {
+1418   2                  CScalerSetByte(_PB_DP_2D_SWITCH_B5, 0x02);
+1419   2              }
+1420   1              else if(GET_INPUT_PORT(g_ucSearchIndex) == _D1_INPUT_PORT)
+1421   1              {
+1422   2                  CScalerSetByte(_PB_DP_2D_SWITCH_B5, 0x06);
+1423   2              }
+1424   1      
+1425   1      }
+1426          #endif  // End of #if(_SCALER_SERIES_TYPE == _RTD2472D_SERIES)
+1427          
+1428          #endif  // End of #if((_TMDS_SUPPORT == _ON) || (_HDMI_SUPPORT == _ON))
+1429          
+1430          // V013 VGA Patch Note (9) Modify 20100414 Start
+1431          // Patch Reason : Add Checking Stable Signal mechanism for VGA Signal.
+1432          //--------------------------------------------------
+1433          // Description  : Check VGA input port is stable in Check State and Not Support State.
+1434          // Input Value  : None
+1435          // Output Value : Return _TRUE if the signal is stable
+1436          //--------------------------------------------------
+1437          bit CSyncCheckVGAIsStable(void)
+1438          {
+1439   1          bit bStablePolarity = 0;
+1440   1          BYTE ucOldSyncType = 0;
+1441   1          BYTE ucOldModeCurr = stModeInfo.ModeCurr;
+1442   1          BYTE ucOldPolarity = stModeInfo.Polarity;
+1443   1          WORD usOldIHCount = 0;
+1444   1          WORD usOldIVTotal = 0;
+1445   1          WORD usOldIHSyncPulseCount = stModeInfo.IHSyncPulseCount;
+1446   1          WORD usOldIVSyncPulseCount = stModeInfo.IVSyncPulseCount;
+1447   1      
+1448   1          // Measure H Start / End Postion is only for SOG Type when ucCurrState == _CHECK_STATE.
+1449   1          if(CScalerGetBit(_SYNC_SELECT_47, _BIT4) == _BIT4)
+1450   1          {
+1451   2              return _TRUE;
+1452   2          }
+1453   1      
+1454   1          // Disable Watch Dog
+1455   1          CAdjustDisableWatchDog(_WD_ALL);
+1456   1      
+1457   1          // V016 System Patch Note (15) Modify 20100824 Start
+1458   1          // Patch Reason : Fix IHCount=0 issue
+1459   1          // Auto Measure Disable
+1460   1          CModeAutoMeasureOff();
+1461   1          // V016 System Patch Note (15) Modify 20100824 End
+1462   1      
+1463   1          // Back up IHCount and IVTotal
+1464   1          usOldIHCount = stModeInfo.IHCount;
+1465   1          usOldIVTotal = stModeInfo.IVTotal;
+1466   1      
+1467   1          // Back Up Stable Polarity
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 25  
+
+1468   1          bStablePolarity = ((bit)CScalerGetBit(_STABLE_MEASURE_4F, _BIT6) ^ (bit)CScalerGetBit(_STABLE_PERIOD_H
+             -_50, _BIT6));
+1469   1      
+1470   1          // Back Up Old Sync Type
+1471   1          CScalerRead(_VSYNC_COUNTER_LEVEL_MSB_4C, 1, &ucOldSyncType, _NON_AUTOINC);
+1472   1      
+1473   1          // Enable Sync Processor Auto Run
+1474   1          CSyncGetSyncTypeAutoRun();
+1475   1      
+1476   1          // Get New Sync Type
+1477   1          CScalerRead(_VSYNC_COUNTER_LEVEL_MSB_4C, 1, pData, _NON_AUTOINC);
+1478   1      
+1479   1          // Sync Type is Changed
+1480   1          if((ucOldSyncType & 0xF0) != (pData[0] & 0xF0))
+1481   1          {
+1482   2              return _FALSE;
+1483   2          }
+1484   1      
+1485   1          // Check Stable Polarity
+1486   1          if(bStablePolarity != ((bit)CScalerGetBit(_STABLE_MEASURE_4F, _BIT6) ^ (bit)CScalerGetBit(_STABLE_PERI
+             -OD_H_50, _BIT6)))
+1487   1          {
+1488   2              return _FALSE;
+1489   2          }
+1490   1      
+1491   1          // Disable On-line Measure
+1492   1          CScalerSetByte(_MEAS_HS_PERIOD_H_52, 0x00);
+1493   1      
+1494   1          if(CModeMeasureReady() == _TRUE)
+1495   1          {
+1496   2              if(CModeMeasureData() == _TRUE)
+1497   2              {
+1498   3                  // Polarity is Changed
+1499   3                  if(ucOldPolarity != stModeInfo.Polarity)
+1500   3                  {
+1501   4                      return _FALSE;
+1502   4                  }
+1503   3      
+1504   3                  // IHCount is Changed
+1505   3                  if(abs(stModeInfo.IHCount - usOldIHCount) > 2)
+1506   3                  {
+1507   4                      return _FALSE;
+1508   4                  }
+1509   3      
+1510   3                  // IVTotal is Changed
+1511   3                  if(abs(stModeInfo.IVTotal - usOldIVTotal) > 2)
+1512   3                  {
+1513   4                      return _FALSE;
+1514   4                  }
+1515   3      
+1516   3                  // IHSyncPulse is Changed
+1517   3                  if(abs(stModeInfo.IHSyncPulseCount - usOldIHSyncPulseCount) > 2)
+1518   3                  {
+1519   4                      return _FALSE;
+1520   4                  }
+1521   3      
+1522   3                  // IVSyncPulse is Changed
+1523   3                  if(abs(stModeInfo.IVSyncPulseCount - usOldIVSyncPulseCount) > 2)
+1524   3                  {
+1525   4                      return _FALSE;
+1526   4                  }
+1527   3              }
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 26  
+
+1528   2              else
+1529   2              {
+1530   3                  return _FALSE;
+1531   3              }
+1532   2          }
+1533   1          else
+1534   1          {
+1535   2              return _FALSE;
+1536   2          }
+1537   1      
+1538   1          // Enable On-line Measure
+1539   1          CScalerSetBit(_MEAS_HS_PERIOD_H_52, ~_BIT7, _BIT7);
+1540   1      
+1541   1          // Polling Measure Ready
+1542   1          CTimerPollingEventProc(60, CMiscModeMeasurePollingEvent);
+1543   1      
+1544   1          // Clear Frame Sync Status
+1545   1          CMiscClearStatusRegister();
+1546   1      
+1547   1          // Roll Back Mode Number
+1548   1          if(stModeInfo.ModeCurr != ucOldModeCurr)
+1549   1          {
+1550   2              stModeInfo.ModeCurr = ucOldModeCurr;
+1551   2          }
+1552   1      
+1553   1          if(ucCurrState == _CHECK_STATE)
+1554   1          {
+1555   2              // Clear Frame Sync Status
+1556   2              CMiscClearStatusRegister();
+1557   2      
+1558   2              CTimerWaitForEvent(_EVENT_IVS);
+1559   2              CTimerWaitForEvent(_EVENT_IVS);
+1560   2              CTimerWaitForEvent(_EVENT_IVS);
+1561   2          }
+1562   1      
+1563   1          return _TRUE;
+1564   1      }
+1565          // V013 VGA Patch Note (9) Modify 20100414 End
+1566          
+1567          #if(_HSYNC_DETECTION == _AUTO_RUN)
+1568          //--------------------------------------------------
+1569          // Description  : Scan VGA input port to obtain if the signal is available
+1570          // Input Value  : None
+1571          // Output Value : Return _TRUE if the signal is available
+1572          //--------------------------------------------------
+1573          bit CSyncScanInputPortVGA(void)
+1574          {
+1575   1          BYTE cnt, synctypetemp = _NO_SYNC_STATE;
+1576   1      
+1577   1      #if(_HSYNC_TYPE_SELECT != _HSYNC_ONLY)
+1578   1          bit flag = 0;
+1579   1      #endif
+1580   1      
+1581   1          // V013 VGA Patch Note (6) Modify 20100428 Start
+1582   1          // Patch Reason : Use M2PLL as internal clock in analog source.
+1583   1          CScalerPageSelect(_PAGE1);
+1584   1      
+1585   1      #if(_SCALER_TYPE == _RTD2472D)
+1586   1          if(CScalerGetBit(_P1_MULTIPLY_PLL_CTRL3_E5, _BIT0) == 0x00)
+1587   1      #elif((_SCALER_TYPE == _RTD2545LR) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  if(CScalerGetBit(_P1_M2PLL_WD_E5, _BIT0) == _BIT0)
+              #endif  // End of #if(_SCALER_TYPE == _RTD2472D)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 27  
+
+1590   1          {
+1591   2              CScalerSetBit(_FIFO_FREQUENCY_22, ~_BIT2, 0x00);
+1592   2          }
+1593   1          else
+1594   1          {
+1595   2              CScalerSetBit(_FIFO_FREQUENCY_22, ~_BIT2, _INTERNAL_CLK_FLAG);
+1596   2          }
+1597   1          // V013 VGA Patch Note (6) Modify 20100428 End
+1598   1      
+1599   1          CScalerPageSelect(_PAGE0);
+1600   1      
+1601   1          if((GET_INPUT_PORT(g_ucSearchIndex) == _A0_INPUT_PORT) || (GET_INPUT_PORT(g_ucSearchIndex) == _D0_INPU
+             -T_PORT))
+1602   1          {
+1603   2              CScalerSetBit(_SYNC_SELECT_47, ~(_BIT3 | _BIT2), (_HSYNC_SOURCE_SWAP == _OFF ? 0x00 : _BIT3 | _BIT
+             -2));
+1604   2              CScalerSetDataPortBit(_SYNC_PROC_ACCESS_PORT_5C, _SYNC_CLAMP_CTRL2_06, ~ _BIT4, _BIT4);
+1605   2              CScalerSetBit(_P0_ADC_RGB_CTRL_CE, ~_BIT3, 0x00);
+1606   2              CScalerSetByte(_P0_ADC_CLAMP_CTRL1_D5, 0x00);
+1607   2          }
+1608   1          else if((GET_INPUT_PORT(g_ucSearchIndex) == _A1_INPUT_PORT) || (GET_INPUT_PORT(g_ucSearchIndex) == _D1
+             -_INPUT_PORT))
+1609   1          {
+1610   2              CScalerSetBit(_SYNC_SELECT_47, ~(_BIT3 | _BIT2), (_HSYNC_SOURCE_SWAP == _OFF ? _BIT3 | _BIT2 : 0x0
+             -0));
+1611   2              CScalerSetDataPortBit(_SYNC_PROC_ACCESS_PORT_5C, _SYNC_CLAMP_CTRL2_06, ~_BIT5, _BIT5);
+1612   2              CScalerSetBit(_P0_ADC_RGB_CTRL_CE, ~_BIT3, _BIT3);
+1613   2              CScalerSetByte(_P0_ADC_CLAMP_CTRL1_D5, 0x54);
+1614   2          }
+1615   1      // 2545LR W/O SOG1 Start
+1616   1      #if(_SCALER_TYPE == _RTD2545LR)
+                  CScalerSetByte(_P0_ADC_DCR_CTRL_D3, (_BIT0 << _SOG0_INPUT_SELECTT)); // SOG Input MUX Select
+                  CScalerSetByte(_P0_ADC_SOG_CMP_D2, 0x30);
+              #elif((_SCALER_TYPE == _RTD2472D) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+1620   1          CScalerSetByte(_P0_ADC_DCR_CTRL_D3, ((_BIT0 << _SOG0_INPUT_SELECTT) | (_BIT0 << _SOG1_INPUT_SELECTT)))
+             -; // SOG Input MUX Select
+1621   1          CScalerSetByte(_P0_ADC_SOG_CMP_D2, 0x34);
+1622   1      #else
+                  No Setting !!
+              #endif  //End of #if(_SCALER_TYPE == _RTD2545LR)
+1625   1      // 2545LR W/O SOG1 End
+1626   1      
+1627   1          CScalerSetBit(_SYNC_CTRL_49, ~(_BIT1 | _BIT0), _BIT1);
+1628   1      
+1629   1          CScalerPageSelect(_PAGE0);
+1630   1      #if(_HSYNC_TYPE_SELECT == _HSYNC_ONLY)
+              
+                  for(cnt = 0; cnt < 2; cnt++)
+                  {
+                      synctypetemp = CSyncGetSyncTypeAutoRun();
+              
+                      // V014 VGA Patch Note (9) Modify 20100604 Start
+                      // Patch Reason : Change capture window setting after signal type find out successful
+                      /*
+                      // V013 VGA Patch Note (22) Modify 20100511 Start
+                      // Patch Reason : Modify Capture Window Size for HEORV/OR Sync Type
+                      CSyncSetCaptureWindowfForHEORV();
+                      // V013 VGA Patch Note (22) Modify 20100511 End
+                      */
+                      // V014 VGA Patch Note (9) Modify 20100604 End
+              
+                      if(synctypetemp != _NO_SYNC_STATE)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 28  
+
+                      {
+                          if(synctypetemp == _SOY_STATE)
+                          {
+                              SET_INPUTSOURCE_TYPE(_SOURCE_YPBPR);
+                          }
+                          else
+                          {
+                              SET_INPUTSOURCE_TYPE(_SOURCE_VGA);
+                          }
+              
+                          // V014 VGA Patch Note (9) Modify 20100604 Start
+                          // Patch Reason : Change capture window setting after signal type find out successful
+                          CSyncSetCaptureWindowfForHEORV();
+                          // V014 VGA Patch Note (9) Modify 20100604 End
+              
+                          return _TRUE;
+                      }
+                  }
+              
+              #else
+1667   1      
+1668   1          CScalerSetBit(_SYNC_SELECT_47, ~_BIT4, 0x00);
+1669   1      
+1670   1          for(cnt = 0; cnt < 4; cnt++)
+1671   1          {
+1672   2              synctypetemp = CSyncGetSyncTypeAutoRun();
+1673   2      
+1674   2              // V014 VGA Patch Note (9) Modify 20100604 Start
+1675   2              // Patch Reason : Change capture window setting after signal type find out successful
+1676   2              /*
+1677   2              // V013 VGA Patch Note (22) Modify 20100511 Start
+1678   2              // Patch Reason : Modify Capture Window Size for HEORV/OR Sync Type
+1679   2              CSyncSetCaptureWindowfForHEORV();
+1680   2              // V013 VGA Patch Note (22) Modify 20100511 End
+1681   2              */
+1682   2              // V014 VGA Patch Note (9) Modify 20100604 End
+1683   2      
+1684   2              if(synctypetemp != _NO_SYNC_STATE)
+1685   2              {
+1686   3                  if((flag == 1) || (CScalerGetBit(_SYNC_SELECT_47, _BIT4) == 0))
+1687   3                  {
+1688   4                      if(synctypetemp == _SOY_STATE)
+1689   4                      {
+1690   5                          SET_INPUTSOURCE_TYPE(_SOURCE_YPBPR);
+1691   5                      }
+1692   4                      else
+1693   4                      {
+1694   5                          SET_INPUTSOURCE_TYPE(_SOURCE_VGA);
+1695   5                      }
+1696   4      
+1697   4                      // V014 VGA Patch Note (9) Modify 20100604 Start
+1698   4                      // Patch Reason : Change capture window setting after signal type find out successful
+1699   4                      CSyncSetCaptureWindowfForHEORV();
+1700   4                      // V014 VGA Patch Note (9) Modify 20100604 End
+1701   4      
+1702   4                      return _TRUE;
+1703   4                  }
+1704   3                  else if(CScalerGetBit(_SYNC_SELECT_47, _BIT4))
+1705   3                  {
+1706   4                      flag = 1;
+1707   4                  }
+1708   3              }
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 29  
+
+1709   2      
+1710   2              CScalerSetBit(_SYNC_SELECT_47, ~_BIT4, CScalerGetBit(_SYNC_SELECT_47, _BIT4) ^ _BIT4);
+1711   2          }
+1712   1      
+1713   1      #endif  // End of #if(_HSYNC_TYPE_SELECT == _HSYNC_ONLY)
+1714   1      
+1715   1          CScalerSetBit(_SYNC_SELECT_47, ~_BIT6, 0x00);
+1716   1          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, 0x00);
+1717   1      
+1718   1          return _FALSE;
+1719   1      }
+1720          
+1721          //-------------------------------------------------------------------
+1722          // Description  : Get VGA sync type by Hsync Type Detection Auto Run
+1723          // Input Value  : None
+1724          // Output Value : Return sync type
+1725          //-------------------------------------------------------------------
+1726          BYTE CSyncGetSyncTypeAutoRun(void)
+1727          {
+1728   1          BYTE synctemp = 0;
+1729   1      
+1730   1          // V013 VGA Patch Note (23) Modify 20100513 Start
+1731   1          // Patch Reason : For Video Mode Clamp Position Setting Flow
+1732   1          bit bSearchYpbprTblFlag = _FALSE;
+1733   1          // V013 VGA Patch Note (23) Modify 20100513 End
+1734   1      
+1735   1      #if(_SCALER_TYPE == _RTD2545LR)
+                  CScalerPageSelect(_PAGE0);
+                  CScalerSetBit(_P0_ADC_POWER_C6, ~(_BIT5 | _BIT3), (_BIT5 | _BIT3));
+              #elif((_SCALER_TYPE == _RTD2472D) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+1739   1          CScalerPageSelect(_PAGE0);
+1740   1          CScalerSetBit(_P0_ADC_POWER_C6, ~(_BIT5 | _BIT4 | _BIT3), (_BIT5 | _BIT4 | _BIT3));
+1741   1      #else
+                  No Setting !!
+              #endif  //End of #if(_SCALER_TYPE == _RTD2545LR)
+1744   1      
+1745   1          // V013 VGA Patch Note (15) Modify 20100422 Start
+1746   1          // Patch Reason : Fix for avoid cover the value at check state.
+1747   1          // Avoid Video8-C-port effect
+1748   1          /*
+1749   1          CScalerSetBit(_IPH_ACT_WID_H_16, ~_BIT7, 0x00);
+1750   1          CScalerSetBit(_SCALE_CTRL_32, ~_BIT7, 0x00);
+1751   1          */
+1752   1          // V013 VGA Patch Note (15) Modify 20100422 End
+1753   1      
+1754   1          // Disable CS_RAW Inverted
+1755   1          CScalerSetBit(_SYNC_INVERT_48, ~(_BIT3), 0x00);
+1756   1      
+1757   1          // Select Measure Source to ADC HS/VS
+1758   1          CScalerSetBit(_SYNC_CTRL_49, ~(_BIT2 | _BIT1 | _BIT0), _BIT2 | _BIT1);
+1759   1      
+1760   1          // Stable Measure Start
+1761   1          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, 0x00);
+1762   1          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, _BIT0);
+1763   1      
+1764   1          // Delay for Stable Measure
+1765   1          CTimerDelayXms(5);
+1766   1      
+1767   1          // Check HSync OverFlow
+1768   1          if((bit)CScalerGetBit(_HSYNC_TYPE_DETECTION_FLAG_4E, _BIT7))
+1769   1          {
+1770   2              return _NO_SYNC_STATE;
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 30  
+
+1771   2          }
+1772   1      
+1773   1          // Check Stable Flag
+1774   1          if(!CTimerPollingEventProc(20, CMiscStableFlagPollingEvent))
+1775   1          {
+1776   2              // Change Stable Period Tolerance
+1777   2              CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT3, 0x00);
+1778   2      
+1779   2              // Delay for Period Tolerance Change
+1780   2              CTimerDelayXms(5);
+1781   2      
+1782   2              // Stable Measure Start
+1783   2              CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, 0x00);
+1784   2              CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, _BIT0);
+1785   2      
+1786   2              // Delay for Stable Measure
+1787   2              CTimerDelayXms(5);
+1788   2      
+1789   2              if(CTimerPollingEventProc(20, CMiscStableFlagPollingEvent) == _FALSE)
+1790   2              {
+1791   3                  // Reset Stable Period Tolerance
+1792   3                  CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT3, _BIT3);
+1793   3      
+1794   3                  return _NO_SYNC_STATE;
+1795   3              }
+1796   2          }
+1797   1      
+1798   1          // Pop Up Stable Value
+1799   1          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT1, _BIT1);
+1800   1      
+1801   1          // Get stable period
+1802   1          CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+1803   1          ((WORD *)pData)[1] = ((pData[0] & 0x07) << 8) | pData[1];
+1804   1      
+1805   1          // Set Vsync Counter Level
+1806   1          CScalerSetBit(_VSYNC_COUNTER_LEVEL_MSB_4C, ~(_BIT2 | _BIT1 | _BIT0), (BYTE)(((WORD *)pData)[1] >> 9) &
+             - 0x07);
+1807   1          CScalerSetByte(_VSYNC_COUNTER_LEVEL_LSB_4D, (BYTE)(((WORD *)pData)[1] >> 1));
+1808   1      
+1809   1          // Enable Hsync Type Detection Auto Run
+1810   1          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, 0x00);
+1811   1          CScalerSetBit(_SYNC_SELECT_47, ~(_BIT6 | _BIT5), 0x00);
+1812   1          CScalerSetBit(_SYNC_SELECT_47, ~_BIT6, _BIT6);
+1813   1      
+1814   1          // Check the result of Auto Run
+1815   1      
+1816   1          // V012 Modify 20100329 Start
+1817   1          // V012 Patch Note (19) : Adjust polling time of Auto Run Typer according to different Crystal frequen
+             -cy.
+1818   1          /*
+1819   1          if(CTimerPollingEventProc(90, CMiscHsyncTypeAutoRunFlagPollingEvent))
+1820   1          */
+1821   1          if(CTimerPollingFlagProc(_SP_AUTORUN_TIME_OUT, _PAGE_COMMON, _VSYNC_COUNTER_LEVEL_MSB_4C, _BIT7, _TRUE
+             -) == _TRUE)
+1822   1          // V012 Modify 20100329 End
+1823   1          {
+1824   2              // V013 VGA Patch Note (21) Modify 20100511 Start
+1825   2              // Patch Reason : Modify for FW doesn't pop up stable result after Stable Measure finish.
+1826   2              // Pop Up Stable Value
+1827   2              CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT1, _BIT1);
+1828   2              // V013 VGA Patch Note (21) Modify 20100511 End
+1829   2      
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 31  
+
+1830   2              synctemp = (CScalerGetBit(_VSYNC_COUNTER_LEVEL_MSB_4C, 0xff) & 0x70) >> 4;
+1831   2      
+1832   2              switch(synctemp)
+1833   2              {
+1834   3                  case _NO_SIGNAL:        // No Signal
+1835   3                  case _NOT_SUPPORT:      // Not Support
+1836   3                  case _HSYNC_WITHOUT_VS: // Hsync only
+1837   3                      synctemp = _NO_SYNC_STATE;
+1838   3                      break;
+1839   3      
+1840   3                  case _YPBPR_SYNC:       // YPbPr-Type CS
+1841   3                      if(CModeMeasureReady())
+1842   3                      {
+1843   4                          if(CModeMeasureData())
+1844   4                          {
+1845   5                              if((stModeInfo.IHFreq >= _H_FREQ_MIN) && (stModeInfo.IHFreq <= _H_FREQ_MAX) && (st
+             -ModeInfo.IVFreq >= _V_FREQ_MIN) && (stModeInfo.IVFreq <= _V_FREQ_MAX))
+1846   5                              {
+1847   6                                  stModeInfo.ModeCurr = CYPbPrSearchMode();
+1848   6      
+1849   6                                  // V013 VGA Patch Note (23) Modify 20100513 Start
+1850   6                                  // Patch Reason : For Video Mode Clamp Position Setting Flow
+1851   6                                  bSearchYpbprTblFlag = _TRUE;
+1852   6                                  // V013 VGA Patch Note (23) Modify 20100513 End
+1853   6      
+1854   6                                  if(stModeInfo.ModeCurr != _MODE_NOSUPPORT)
+1855   6                                  {
+1856   7                                      synctemp = _SOY_STATE;
+1857   7                                      break;
+1858   7                                  }
+1859   6                              }
+1860   5                              else
+1861   5                              {
+1862   6                                  stModeInfo.ModeCurr = 0;
+1863   6      
+1864   6                                  synctemp = _SOY_STATE;
+1865   6                                  break;
+1866   6                              }
+1867   5                          }
+1868   4                      }
+1869   3                      synctemp = _NO_SYNC_STATE;
+1870   3                      break;
+1871   3      
+1872   3                  case _SERRATION_CS:     // Serration-Type CS
+1873   3      
+1874   3      #if(_YPBPR_SUPPORT == _ON)
+1875   3      #if(_HSYNC_TYPE_SELECT == _HSYNC_WITH_SOG_SOY)
+1876   3      
+1877   3                      if((bit)CScalerGetBit(_SYNC_SELECT_47, _BIT4))
+1878   3                      {
+1879   4                          if(CModeMeasureReady())
+1880   4                          {
+1881   5                              if(CModeMeasureData())
+1882   5                              {
+1883   6                                  if((stModeInfo.IHFreq >= _H_FREQ_MIN) && (stModeInfo.IHFreq <= _H_FREQ_MAX) &&
+             - (stModeInfo.IVFreq >= _V_FREQ_MIN) && (stModeInfo.IVFreq <= _V_FREQ_MAX))
+1884   6                                  {
+1885   7                                      stModeInfo.ModeCurr = CYPbPrSearchMode();
+1886   7      
+1887   7                                      // V013 VGA Patch Note (23) Modify 20100513 Start
+1888   7                                      // Patch Reason : For Video Mode Clamp Position Setting Flow
+1889   7                                      bSearchYpbprTblFlag = _TRUE;
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 32  
+
+1890   7                                      // V013 VGA Patch Note (23) Modify 20100513 End
+1891   7      
+1892   7                                      if(stModeInfo.ModeCurr != _MODE_NOSUPPORT)
+1893   7                                      {
+1894   8                                          if(CSyncDistinguishSogSoy() == _MODE_NOSUPPORT)
+1895   8                                          {
+1896   9                                              synctemp = _SOY_STATE;
+1897   9                                          }
+1898   8                                          else
+1899   8                                          {
+1900   9                                              synctemp = _CS_STATE;
+1901   9                                          }
+1902   8                                      }
+1903   7                                      else
+1904   7                                      {
+1905   8                                          synctemp = _CS_STATE;
+1906   8                                      }
+1907   7                                      break;
+1908   7                                  }
+1909   6                                  else
+1910   6                                  {
+1911   7                                      synctemp = _CS_STATE;
+1912   7                                      break;
+1913   7                                  }
+1914   6                              }
+1915   5                          }
+1916   4      
+1917   4                          synctemp = _NO_SYNC_STATE;
+1918   4                          break;
+1919   4                      }
+1920   3                      else
+1921   3                      {
+1922   4                          synctemp = _CS_STATE;
+1923   4                          break;
+1924   4                      }
+1925   3      #else
+                              if((GET_INPUTPORT_TYPE(g_ucSearchIndex) == _A0_YPBPR_PORT) || (GET_INPUTPORT_TYPE(g_ucSear
+             -chIndex) == _A1_YPBPR_PORT))
+                              {
+                                  stModeInfo.ModeCurr = 0;
+                                  synctemp = _SOY_STATE;
+                              }
+                              else
+                              {
+                                  synctemp = _CS_STATE;
+                              }
+              
+                              break;
+              
+              #endif  //End of #if(_HSYNC_TYPE_SELECT == _HSYNC_WITH_SOG_SOY)
+1939   3      #endif  //End of #if(_YPBPR_SUPPORT == _ON)
+1940   3                  case _XOR_OR_TYPE_CS_WITH_EQR:      // CS with Equalizer
+1941   3                  case _XOR_OR_TYPE_CS_WITHOUT_EQR:   // OR-Type & XOR-Type CS
+1942   3                      synctemp = _CS_STATE;
+1943   3                      break;
+1944   3      
+1945   3                  case _SEPARATE_HSYNC:               // Separate Sync
+1946   3                      synctemp = _SS_STATE;
+1947   3                      break;
+1948   3      
+1949   3                  default:
+1950   3                      synctemp = _NO_SYNC_STATE;
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 33  
+
+1951   3                      break;
+1952   3              }
+1953   2          }
+1954   1          else
+1955   1          {
+1956   2              synctemp = _NO_SYNC_STATE;
+1957   2          }
+1958   1      
+1959   1      #if(_HSYNC_TYPE_SELECT != _HSYNC_ONLY)
+1960   1          if((synctemp != _NO_SYNC_STATE) && ((bit)CScalerGetBit(_SYNC_SELECT_47, _BIT4)))
+1961   1          {
+1962   2              // V015 VGA Patch Note (3) Modify 20100611 Start
+1963   2              // Patch Reason : Solve SOG mistaken when enter white pattern in separate signal.
+1964   2              /*
+1965   2              // Get Stable High Period
+1966   2              CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+1967   2              stModeInfo.IHSyncPulseCount = ((pData[0] & 0x07) << 8) | pData[1];
+1968   2              CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+1969   2              stModeInfo.IHCount = ((pData[0] & 0x07) << 8) | pData[1];
+1970   2      
+1971   2              if(((stModeInfo.IHSyncPulseCount * 7 / stModeInfo.IHCount) != 0) || (stModeInfo.IHSyncPulseCount <
+             - 4))
+1972   2              {
+1973   2                  synctemp = _NO_SYNC_STATE;
+1974   2              }
+1975   2              */
+1976   2      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                      // Get Stable High Period
+                      CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+                      stModeInfo.IHSyncPulseCount = ((WORD)(pData[0] & 0x07) << 8) | pData[1];
+              
+                      // Get H Stable Period
+                      CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+                      stModeInfo.IHCount = ((pData[0] & 0x07) << 8) | pData[1];
+              
+                      // Check H Sync
+                      if(((stModeInfo.IHSyncPulseCount * 7 / stModeInfo.IHCount) != 0) || (stModeInfo.IHSyncPulseCount <
+             - 4))
+                      {
+                          synctemp = _NO_SYNC_STATE;
+                      }
+              
+                      // Init back up V Sync Pulse Width
+                      ((WORD *)pData)[6] = _MAX_VSYNC_HIGH_PERIOD;
+              
+                      for(pData[4] = 0; pData[4] < 10; pData[4]++)
+                      {
+                          CScalerGetDataPortByte(_SYNC_PROC_ACCESS_PORT_5C, 0x0A, 2, &pData[2], _NON_AUTOINC);
+              
+                          // Get DeVS High Period Width
+                          ((WORD *)pData)[7] = (((WORD)(pData[2] & 0x0F) << 8) | pData[3]);
+              
+                          if((((WORD *)pData)[7] == ((WORD *)pData)[6]) || (((WORD *)pData)[7] >= _MAX_VSYNC_HIGH_PERIOD
+             -))
+                          {
+                              break;
+                          }
+              
+                          // Back up current V Sync Count
+                          ((WORD *)pData)[6] = ((WORD *)pData)[7];
+                      }
+              
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 34  
+
+                      // Check V Sync
+                      if((((WORD *)pData)[7] >= _MAX_VSYNC_HIGH_PERIOD) || (((WORD *)pData)[7] <= 0))
+                      {
+                          synctemp = _NO_SYNC_STATE;
+                      }
+              #else
+2016   2              // Get Stable High Period
+2017   2              CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+2018   2              stModeInfo.IHSyncPulseCount = ((pData[0] & 0x07) << 8) | pData[1];
+2019   2              CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+2020   2              stModeInfo.IHCount = ((pData[0] & 0x07) << 8) | pData[1];
+2021   2      
+2022   2              if(((stModeInfo.IHSyncPulseCount * 7 / stModeInfo.IHCount) != 0) || (stModeInfo.IHSyncPulseCount <
+             - 4))
+2023   2              {
+2024   3                  synctemp = _NO_SYNC_STATE;
+2025   3              }
+2026   2      #endif // End of // #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+2027   2              // V015 VGA Patch Note (3) Modify 20100611 End
+2028   2          }
+2029   1      #endif  // End of #if(_HSYNC_TYPE_SELECT != _HSYNC_ONLY)
+2030   1      
+2031   1          // V013 VGA Patch Note (23) Modify 20100513 Start
+2032   1          // Patch Reason : For Video Mode Clamp Position Setting Flow
+2033   1      
+2034   1      // V014 VGA Patch Note (6) Modify 20100527 Start
+2035   1      // Patch Reason : Modify Video Mode Can't Light On
+2036   1      #if(_YPBPR_SUPPORT == _ON)
+2037   1      // V014 VGA Patch Note (6) Modify 20100527 End
+2038   1      
+2039   1          // V014 VGA Patch Note (6) Modify 20100527 Start
+2040   1          // Patch Reason : Modify Video Mode Can't Light On
+2041   1          /*
+2042   1          if((bSearchYpbprTblFlag != _TRUE) && (synctemp != _NO_SYNC_STATE))
+2043   1          */
+2044   1          if((bSearchYpbprTblFlag != _TRUE) && ((synctemp != _NO_SYNC_STATE) && (CScalerGetBit(_SYNC_SELECT_47, 
+             -_BIT4) == _BIT4)))
+2045   1          // V014 VGA Patch Note (6) Modify 20100527 End
+2046   1          {
+2047   2              if(CModeMeasureReady() == _TRUE)
+2048   2              {
+2049   3                  if(CModeMeasureData() == _TRUE)
+2050   3                  {
+2051   4                      if((stModeInfo.IHFreq >= _H_FREQ_MIN) && (stModeInfo.IHFreq <= _H_FREQ_MAX) && (stModeInfo
+             -.IVFreq >= _V_FREQ_MIN) && (stModeInfo.IVFreq <= _V_FREQ_MAX))
+2052   4                      {
+2053   5                          stModeInfo.ModeCurr = CYPbPrSearchMode();
+2054   5      
+2055   5                          // V014 VGA Patch Note (6) Modify 20100527 Start
+2056   5                          // Patch Reason : Modify Video Mode Can't Light On
+2057   5                          if((stModeInfo.ModeCurr != _MODE_NOSUPPORT) && (stModeInfo.ModeCurr != _VIDEO_720x480p
+             -_60HZ))
+2058   5                          {
+2059   6                              synctemp = _SOY_STATE;
+2060   6                          }
+2061   5                          // V014 VGA Patch Note (6) Modify 20100527 End
+2062   5                      }
+2063   4                      else
+2064   4                      {
+2065   5                          stModeInfo.ModeCurr = _MAX_YPBPR_MODE;
+2066   5                      }
+2067   4                  }
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 35  
+
+2068   3                  else
+2069   3                  {
+2070   4                      synctemp = _NO_SYNC_STATE;
+2071   4                  }
+2072   3              }
+2073   2              else
+2074   2              {
+2075   3                  synctemp = _NO_SYNC_STATE;
+2076   3              }
+2077   2          }
+2078   1      
+2079   1      // V014 VGA Patch Note (6) Modify 20100527 Start
+2080   1      // Patch Reason : Modify Video Mode Can't Light On
+2081   1      #endif
+2082   1      // V014 VGA Patch Note (6) Modify 20100527 End
+2083   1      
+2084   1          // V013 VGA Patch Note (23) Modify 20100513 End
+2085   1      
+2086   1          return synctemp;
+2087   1      }
+2088          
+2089          #else   // Else of #if(_HSYNC_DETECTION == _AUTO_RUN)
+              
+              //--------------------------------------------------
+              // Description  : Scan VGA input port to obtain if the signal is available
+              // Input Value  : None
+              // Output Value : Return _TRUE if the signal is available
+              //--------------------------------------------------
+              bit CSyncScanInputPortVGA(void)
+              {
+                  BYTE cnt = 0;
+                  BYTE ucSyncType = _NO_SYNC_STATE;
+                  BYTE ucSourceSel = _SOURCE_FROM_NONE;
+                  bit flag = 0;
+              
+                  // V013 VGA Patch Note (6) Modify 20100428 Start
+                  // Patch Reason : Use M2PLL as internal clock in analog source.
+                  CScalerPageSelect(_PAGE1);
+              
+              #if(_SCALER_TYPE == _RTD2472D)
+                  if(CScalerGetBit(_P1_MULTIPLY_PLL_CTRL3_E5, _BIT0) == 0x00)
+              #elif((_SCALER_TYPE == _RTD2545LR) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  if(CScalerGetBit(_P1_M2PLL_WD_E5, _BIT0) == _BIT0)
+              #endif  // End of #if(_SCALER_TYPE == _RTD2472D)
+                  {
+                      CScalerSetBit(_FIFO_FREQUENCY_22, ~_BIT2, 0x00);
+                  }
+                  else
+                  {
+                      CScalerSetBit(_FIFO_FREQUENCY_22, ~_BIT2, _INTERNAL_CLK_FLAG);
+                  }
+                  // V013 VGA Patch Note (6) Modify 20100428 End
+              
+                  CScalerPageSelect(_PAGE0);
+              
+                  if((GET_INPUT_PORT(g_ucSearchIndex) == _A0_INPUT_PORT) || (GET_INPUT_PORT(g_ucSearchIndex) == _D0_INPU
+             -T_PORT))
+                  {
+                      CScalerSetBit(_SYNC_SELECT_47, ~(_BIT3 | _BIT2), (_HSYNC_SOURCE_SWAP == _OFF ? 0x00 : _BIT3 | _BIT
+             -2));
+                      CScalerSetDataPortBit(_SYNC_PROC_ACCESS_PORT_5C, _SYNC_CLAMP_CTRL2_06, ~ _BIT4, _BIT4);
+                      CScalerSetBit(_P0_ADC_RGB_CTRL_CE, ~_BIT3, 0x00);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 36  
+
+                      CScalerSetByte(_P0_ADC_CLAMP_CTRL1_D5, 0x00);
+                  }
+                  else if((GET_INPUT_PORT(g_ucSearchIndex) == _A1_INPUT_PORT) || (GET_INPUT_PORT(g_ucSearchIndex) == _D1
+             -_INPUT_PORT))
+                  {
+                      CScalerSetBit(_SYNC_SELECT_47, ~(_BIT3 | _BIT2), (_HSYNC_SOURCE_SWAP == _OFF ? _BIT3 | _BIT2 : 0x0
+             -0));
+                      CScalerSetDataPortBit(_SYNC_PROC_ACCESS_PORT_5C, _SYNC_CLAMP_CTRL2_06, ~_BIT5, _BIT5);
+                      CScalerSetBit(_P0_ADC_RGB_CTRL_CE, ~_BIT3, _BIT3);
+                      CScalerSetByte(_P0_ADC_CLAMP_CTRL1_D5, 0x54);
+                  }
+              
+              #if(_SCALER_TYPE == _RTD2545LR)
+                  CScalerSetByte(_P0_ADC_DCR_CTRL_D3, (_BIT0 << _SOG0_INPUT_SELECTT)); // SOG Input MUX Select
+                  CScalerSetByte(_P0_ADC_SOG_CMP_D2, 0x30);
+              #elif((_SCALER_TYPE == _RTD2472D) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  CScalerSetByte(_P0_ADC_DCR_CTRL_D3, ((_BIT0 << _SOG0_INPUT_SELECTT) | (_BIT0 << _SOG1_INPUT_SELECTT)))
+             -; // SOG Input MUX Select
+                  CScalerSetByte(_P0_ADC_SOG_CMP_D2, 0x34);
+              #else
+                  No Setting !!
+              #endif  //End of #if(_SCALER_TYPE == _RTD2545LR)
+              
+                  ucSourceSel = _SOURCE_FROM_HS_RAW;
+              
+                  for(cnt = 0; cnt < 4; cnt++)
+                  {
+                      ucSyncType = CSyncGetSyncTypeNormalRun(ucSourceSel);
+              
+                      if(ucSyncType == _NO_SYNC_STATE)
+                      {
+                          if(ucSourceSel == _SOURCE_FROM_HS_RAW)
+                          {
+                              ucSourceSel = _SOURCE_FROM_SOG;
+                          }
+                          else
+                          {
+                              ucSourceSel = _SOURCE_FROM_HS_RAW;
+                          }
+                      }
+                      else
+                      {
+                          if(ucSourceSel == _SOURCE_FROM_HS_RAW)
+                          {
+                              SET_INPUTSOURCE_TYPE(_SOURCE_VGA);
+              
+                              // Clear Stable Flag
+                              CScalerSetByte(_HSYNC_TYPE_DETECTION_FLAG_4E, 0xff);
+                              return _TRUE;
+                          }
+                          else
+                          {
+                              if(flag)
+                              {
+                                  if(ucSyncType == _SOY_STATE)
+                                  {
+                                      SET_INPUTSOURCE_TYPE(_SOURCE_YPBPR);
+                                  }
+                                  else
+                                  {
+                                      SET_INPUTSOURCE_TYPE(_SOURCE_VGA);
+                                  }
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 37  
+
+              
+                                  // Clear Stable Flag
+                                  CScalerSetByte(_HSYNC_TYPE_DETECTION_FLAG_4E, 0xff);
+                                  return _TRUE;
+                              }
+                              else
+                              {
+                                  ucSourceSel = _SOURCE_FROM_HS_RAW;
+                                  flag = 1;
+                              }
+                          }
+                      }
+                  }
+              
+                  CScalerSetBit(_SYNC_SELECT_47, ~_BIT6, 0x00);
+                  CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, 0x00);
+              
+                  return _FALSE;
+              }
+              
+              //--------------------------------------------------------------------
+              // Description  : Get VGA sync type by Hsync Type Detection Normal Run
+              // Input Value  : None
+              // Output Value : Return sync type
+              //--------------------------------------------------------------------
+              BYTE CSyncGetSyncTypeNormalRun(BYTE ucSourceSel)
+              {
+                  BYTE ucSyncType = _NO_SYNC_STATE;
+                  BYTE cnt = 0;
+              
+                  if(ucSourceSel == _SOURCE_FROM_NONE)
+                  {
+                      return _NO_SYNC_STATE;  // No-Signal State
+                  }
+              
+                  // Hsync Source Select
+                  CScalerSetBit(_SYNC_SELECT_47, ~_BIT4, (ucSourceSel > 1 ? _BIT4 : 0));
+              
+              #if(_SCALER_TYPE == _RTD2545LR)
+                  CScalerPageSelect(_PAGE0);
+                  CScalerSetBit(_P0_ADC_POWER_C6, ~(_BIT5 | _BIT3), (_BIT5 | _BIT3));
+              #elif((_SCALER_TYPE == _RTD2472D) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  CScalerPageSelect(_PAGE0);
+                  CScalerSetBit(_P0_ADC_POWER_C6, ~(_BIT5 | _BIT4 | _BIT3), (_BIT5 | _BIT4 | _BIT3));
+              #else
+                  No Setting !!
+              #endif  //End of #if(_SCALER_TYPE == _RTD2545LR)
+              
+                  // Avoid Video8-C-port effect
+                  CScalerSetBit(_IPH_ACT_WID_H_16, ~_BIT7, 0x00);
+                  CScalerSetBit(_SCALE_CTRL_32, ~_BIT7, 0x00);
+              
+                  // Disable CS_RAW Inverted
+                  CScalerSetBit(_SYNC_INVERT_48, ~(_BIT3), 0x00);
+              
+                  // Select Measure Source to ADC HS/VS
+                  CScalerSetBit(_SYNC_CTRL_49, ~(_BIT2 | _BIT1 | _BIT0), _BIT2 | _BIT1);
+              
+                  do
+                  {
+                      // Stable Measure Start
+                      CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, 0x00);
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 38  
+
+                      CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, _BIT0);
+              
+                      // Delay for Stable Measure
+                      CTimerDelayXms(5);
+              
+                      // Check HSync OverFlow
+                      if((bit)CScalerGetBit(_HSYNC_TYPE_DETECTION_FLAG_4E, _BIT7))
+                      {
+                          return _NO_SYNC_STATE;  // No-Signal State
+                      }
+              
+                      // Check Stable Flag
+                      if(!CTimerPollingEventProc(20, CMiscStableFlagPollingEvent))
+                      {
+                          // Change Stable Period Tolerance
+                          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT3, 0x00);
+              
+                          // Delay for Period Tolerance Change
+                          CTimerDelayXms(5);
+              
+                          // Stable Measure Start
+                          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, 0x00);
+                          CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT0, _BIT0);
+              
+                          // Delay for Stable Measure
+                          CTimerDelayXms(5);
+              
+                          if(CTimerPollingEventProc(20, CMiscStableFlagPollingEvent) == _FALSE)
+                          {
+                              // Reset Stable Period Tolerance
+                              CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT3, _BIT3);
+              
+                              return _NO_SYNC_STATE;  // Not-Support State
+                          }
+                      }
+              
+                      // Pop Up Stable Value
+                      CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT1, _BIT1);
+              
+                      // Check Hsync Polarity
+                      if((!(bit)(CScalerGetBit(_STABLE_MEASURE_4F, _BIT6))))
+                      {
+                          CScalerSetBit(_SYNC_INVERT_48, ~(_BIT3), _BIT3);
+                          cnt++;
+                      }
+                      else
+                      {
+                          break;  // Positive Polarity
+                      }
+              
+                      if(cnt >= 2)
+                      {
+                          return _NO_SYNC_STATE;  // Not-Support State
+                      }
+              
+                  }while(cnt < 2);
+              
+                  // Get stable period
+                  CScalerSetBit(_STABLE_MEASURE_4F, ~_BIT1, _BIT1);
+                  CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+                  ((WORD *)pData)[1] = ((pData[0] & 0x07) << 8) | pData[1];
+              
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 39  
+
+                  // Set Vsync Counter Level
+                  CScalerSetBit(_VSYNC_COUNTER_LEVEL_MSB_4C, ~(_BIT2 | _BIT1 | _BIT0), (BYTE)(((WORD *)pData)[1] >> 9) &
+             - 0x07);
+                  CScalerSetByte(_VSYNC_COUNTER_LEVEL_LSB_4D, (BYTE)(((WORD *)pData)[1] >> 1));
+              
+                  // Enable Clamp Output and HS_OUT.
+                  CScalerSetBit(_SYNC_INVERT_48, ~(_BIT2 | _BIT4), (_BIT2 | _BIT4));
+              
+                  // De-composite Circuit Enable
+                  CScalerSetBit(_SYNC_SELECT_47, ~(_BIT5 | _BIT6), 0x00);
+                  CScalerSetBit(_SYNC_SELECT_47, ~(_BIT5), _BIT5);
+              
+                  // Clear Capture Window Unlock Flag
+                  CTimerDelayXms(40);
+                  CScalerSetBit(_HSYNC_TYPE_DETECTION_FLAG_4E, _BIT0, _BIT0);
+              
+                  // Delay for De-composite Circuit
+                  CTimerDelayXms(120);
+              
+                  // Check Hsync Polarity Change Flag
+                  if((!(bit)(CScalerGetBit(_HSYNC_TYPE_DETECTION_FLAG_4E, _BIT1))))
+                  {
+                      // Select HS_OUT Source to DeHs & Switch ADC_VS Source to VS_RAW
+                      CScalerSetBit(_SYNC_CTRL_49, ~(_BIT5 | _BIT6), _BIT6);
+              
+                      if(CTimerPollingFlagProc(40, _PAGE_COMMON, _HSYNC_TYPE_DETECTION_FLAG_4E, _BIT4, 1))
+                      {
+                          return _SS_STATE;   // Separate Sync State
+                      }
+              
+                      return _NO_SYNC_STATE;          // No-Signal State
+                  }
+              
+                  // Select HS_OUT Source to DeHs & Switch ADC_VS Source to DeVS
+                  CScalerSetBit(_SYNC_CTRL_49, ~(_BIT5 | _BIT6), (_BIT5 | _BIT6));
+              
+                  // Check Capture Window Unlock
+                  if((bit)(CScalerGetBit(_HSYNC_TYPE_DETECTION_FLAG_4E, _BIT0)))
+                  {
+                      // Enable COAST Output and HS Recovery.
+                      CScalerSetBit(_SYNC_INVERT_48, ~(_BIT1 | _BIT6), (_BIT1 | _BIT6));
+              
+                      ucSyncType = _CS_STATE;         // OR-Type & XOR-Type CS
+                  }
+                  else
+                  {
+                      // Disable COAST Output and HS Recovery.
+                      CScalerSetBit(_SYNC_INVERT_48, ~(_BIT1 | _BIT6), 0x00);
+              
+                      // Check Equalization in Hsync
+                      if((bit)(CScalerGetBit(_HSYNC_TYPE_DETECTION_FLAG_4E, _BIT2)))
+                      {
+                          ucSyncType = _NO_SYNC_STATE;
+                          if(CModeMeasureReady())
+                          {
+                              if(CModeMeasureData())
+                              {
+                                  if((stModeInfo.IHFreq >= _H_FREQ_MIN) && (stModeInfo.IHFreq <= _H_FREQ_MAX) && (stMode
+             -Info.IVFreq >= _V_FREQ_MIN) && (stModeInfo.IVFreq <= _V_FREQ_MAX))
+                                  {
+                                      stModeInfo.ModeCurr = CYPbPrSearchMode();
+                                      if(stModeInfo.ModeCurr != _MODE_NOSUPPORT)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 40  
+
+                                      {
+                                          ucSyncType = _SOY_STATE;    // YPbPr-Type CS
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                      else
+                      {
+              #if(_YPBPR_SUPPORT == _ON)
+                              // Check Source Selection is SOG/SOY
+                              if((bit)CScalerGetBit(_SYNC_SELECT_47, _BIT4))
+                              {
+                                  if(CModeMeasureReady())
+                                  {
+                                      if(CModeMeasureData())
+                                      {
+                                          if((stModeInfo.IHFreq >= _H_FREQ_MIN) && (stModeInfo.IHFreq <= _H_FREQ_MAX) &&
+             - (stModeInfo.IVFreq >= _V_FREQ_MIN) && (stModeInfo.IVFreq <= _V_FREQ_MAX))
+                                          {
+                                              stModeInfo.ModeCurr = CYPbPrSearchMode();
+                                              if(stModeInfo.ModeCurr != _MODE_NOSUPPORT)
+                                              {
+                                                  if(CSyncDistinguishSogSoy() == _MODE_NOSUPPORT)
+                                                  {
+                                                      ucSyncType = _SOY_STATE;
+                                                  }
+                                                  else
+                                                  {
+                                                      ucSyncType = _CS_STATE;
+                                                  }
+                                              }
+                                              else
+                                              {
+                                                  ucSyncType = _CS_STATE;     // Serration-Type CS
+                                              }
+                                          }
+                                      }
+                                  }
+              
+                                  if(ucSyncType == _NO_SYNC_STATE)
+                                  {
+                                      return _NO_SYNC_STATE;  // No-Signal State
+                                  }
+                              }
+                              else
+                              {
+                                  ucSyncType = _CS_STATE;     // Serration-Type CS
+                              }
+              #else
+                          if((GET_INPUTPORT_TYPE(g_ucSearchIndex) == _A0_YPBPR_PORT) || (GET_INPUTPORT_TYPE(g_ucSearchIn
+             -dex) == _A1_YPBPR_PORT))
+                          {
+                              stModeInfo.ModeCurr = 0;
+                              ucSyncType = _SOY_STATE;        // YPbPr-Type CS
+                          }
+                          else
+                          {
+                              ucSyncType = _CS_STATE;         // Serration-Type CS
+                          }
+              
+              #endif // End of #if(_YPBPR_SUPPORT == _ON)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 41  
+
+                      }
+                  }
+              
+                  if((ucSyncType != _NO_SYNC_STATE) && ((bit)CScalerGetBit(_SYNC_SELECT_47, _BIT4)))
+                  {
+                      // V015 VGA Patch Note (3) Modify 20100611 Start
+                      // Patch Reason : Solve SOG mistaken when enter white pattern in separate signal.
+                      /*
+                      // Get Stable High Period
+                      CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+                      stModeInfo.IHSyncPulseCount = ((pData[0] & 0x07) << 8) | pData[1];
+                      CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+                      stModeInfo.IHCount = ((pData[0] & 0x07) << 8) | pData[1];
+              
+                      if(((stModeInfo.IHSyncPulseCount * 7 / stModeInfo.IHCount) != 0) || (stModeInfo.IHSyncPulseCount <
+             - 4))
+                      {
+                          ucSyncType = _NO_SYNC_STATE;
+                      }
+                      */
+              #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                      // Get Stable High Period
+                      CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+                      stModeInfo.IHSyncPulseCount = ((WORD)(pData[0] & 0x07) << 8) | pData[1];
+              
+                      // Get H Stable Period
+                      CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+                      stModeInfo.IHCount = ((pData[0] & 0x07) << 8) | pData[1];
+              
+                      // Check H Sync
+                      if(((stModeInfo.IHSyncPulseCount * 7 / stModeInfo.IHCount) != 0) || (stModeInfo.IHSyncPulseCount <
+             - 4))
+                      {
+                          ucSyncType = _NO_SYNC_STATE;
+                      }
+              
+                      // Init back up V Sync Pulse Width
+                      ((WORD *)pData)[6] = _MAX_VSYNC_HIGH_PERIOD;
+              
+                      for(pData[4] = 0; pData[4] < 10; pData[4]++)
+                      {
+                          CScalerGetDataPortByte(_SYNC_PROC_ACCESS_PORT_5C, 0x0A, 2, &pData[2], _NON_AUTOINC);
+              
+                          // Get DeVS High Period Width
+                          ((WORD *)pData)[7] = (((WORD)(pData[2] & 0x0F) << 8) | pData[3]);
+              
+                          if((((WORD *)pData)[7] == ((WORD *)pData)[6]) || (((WORD *)pData)[7] >= _MAX_VSYNC_HIGH_PERIOD
+             -))
+                          {
+                              break;
+                          }
+              
+                          // Back up current V Sync Count
+                          ((WORD *)pData)[6] = ((WORD *)pData)[7];
+                      }
+              
+                      // Check V Sync
+                      if((((WORD *)pData)[7] >= _MAX_VSYNC_HIGH_PERIOD) || (((WORD *)pData)[7] <= 0))
+                      {
+                          ucSyncType = _NO_SYNC_STATE;
+                      }
+              #else
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 42  
+
+                      // Get Stable High Period
+                      CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+                      stModeInfo.IHSyncPulseCount = ((pData[0] & 0x07) << 8) | pData[1];
+                      CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+                      stModeInfo.IHCount = ((pData[0] & 0x07) << 8) | pData[1];
+              
+                      if(((stModeInfo.IHSyncPulseCount * 7 / stModeInfo.IHCount) != 0) || (stModeInfo.IHSyncPulseCount <
+             - 4))
+                      {
+                          ucSyncType = _NO_SYNC_STATE;
+                      }
+              #endif // End of // #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                      // V015 VGA Patch Note (3) Modify 20100611 End
+                  }
+              
+                  return ucSyncType;
+              }
+              
+              #endif   // End of #if(_HSYNC_DETECTION == _AUTO_RUN)
+2508          
+2509          //--------------------------------------------------
+2510          // Description  : Modify VGA sync polarity
+2511          // Input Value  : None
+2512          // Output Value : None
+2513          //--------------------------------------------------
+2514          void CSyncModifyPolarity(void)
+2515          {
+2516   1          BYTE polarity;
+2517   1      
+2518   1          polarity = CScalerGetBit(_VGIP_SIGINV_11, 0xff);
+2519   1          polarity &= ~(_BIT3 | _BIT2);
+2520   1      
+2521   1          if(!(bit)(stModeInfo.Polarity & _BIT0))
+2522   1          {
+2523   2              polarity |= _BIT2;
+2524   2          }
+2525   1      
+2526   1          if(!(bit)(stModeInfo.Polarity & _BIT1))
+2527   1          {
+2528   2              polarity |= _BIT3;
+2529   2          }
+2530   1      
+2531   1          CScalerSetByte(_VGIP_SIGINV_11, polarity);
+2532   1      }
+2533          
+2534          //--------------------------------------------------
+2535          // Description  : Check SOY Mode same as SOG Mode
+2536          // Input Value  : None
+2537          // Output Value : Search Result
+2538          //--------------------------------------------------
+2539          BYTE CSyncDistinguishSogSoy(void)
+2540          {
+2541   1          BYTE ucModeCnt = 0;
+2542   1      
+2543   1          for(ucModeCnt = 0; ucModeCnt < _MAX_PRESET_MODE; ucModeCnt++)
+2544   1          {
+2545   2              if(CModeComparePresetModeVGA(ucModeCnt) == _TRUE)
+2546   2              {
+2547   3                  if(ucModeCnt == _MODE_640x480_60HZ)
+2548   3                  {
+2549   4                      return ucModeCnt;
+2550   4                  }
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 43  
+
+2551   3              }
+2552   2          }
+2553   1      
+2554   1          return _MODE_NOSUPPORT;
+2555   1      }
+2556          
+2557          // V013 VGA Patch Note (22) Modify 20100511 Start
+2558          // Patch Reason : Modify Capture Window Size for HEORV/OR Sync Type
+2559          //--------------------------------------------------
+2560          // Description  : Modify Capture Window For HEROV Sync Type
+2561          // Input Value  : None
+2562          // Output Value : None
+2563          //--------------------------------------------------
+2564          void CSyncSetCaptureWindowfForHEORV(void)
+2565          {
+2566   1          BYTE ucRef = 0;
+2567   1          BYTE ucHSyncPulseCount = 0;
+2568   1          BYTE ucVSyncPulseCount = 0;
+2569   1      
+2570   1          if(CScalerGetBit(_VSYNC_COUNTER_LEVEL_MSB_4C, _BIT7) != _BIT7)
+2571   1          {
+2572   2              return;
+2573   2          }
+2574   1      
+2575   1          // V016 VGA Patch Note (13) Modify 20100831 Start
+2576   1          // Patch Reason : Enable Coast Signal Cause Picture Distortion If H XOR V Type Was mistaken for Serrat
+             -ion Type.
+2577   1          // If input source is CS for SOG, Force Enable Coast function
+2578   1          if(CScalerGetBit(_HSYNC_TYPE_DETECTION_FLAG_4E, _BIT1) == _BIT1)
+2579   1          {
+2580   2              // Get Hsync High Period
+2581   2              CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+2582   2              ((WORD *)pData)[1] = ((pData[0] & 0x07) << 8) | pData[1];
+2583   2      
+2584   2              // Get Hsync Stable Period
+2585   2              CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+2586   2              ((WORD *)pData)[2] = ((pData[0] & 0x07) << 8) | pData[1];
+2587   2      
+2588   2              // Check HS Polarity, High Pulse Calculate By Positive Polarity.
+2589   2              if(((WORD *)pData)[1] > (((WORD *)pData)[2] / 2))
+2590   2              {
+2591   3                  ucHSyncPulseCount = (BYTE)(((WORD *)pData)[2] - ((WORD *)pData)[1]);
+2592   3              }
+2593   2              else
+2594   2              {
+2595   3                  ucHSyncPulseCount = (BYTE)(((WORD *)pData)[1]);
+2596   3              }
+2597   2      
+2598   2              ///////////////////////////////////////////////////////////////////////////////
+2599   2              // Formula :                                                                 //
+2600   2              //              High Sync Pulse Count                                        //
+2601   2              //          ------------------------------- = 0.220(us)                      //
+2602   2              //            _INTERNAL_SYSTEM_CLK / 1000                                    //
+2603   2              //                                                                           //
+2604   2              // 0.220(us) Come From 1920x1440-60R (High Pulse is 0.173(us), give 57us tolerance)         //
+2605   2              ///////////////////////////////////////////////////////////////////////////////
+2606   2      
+2607   2              // Reference Hsync High Pulse Width = 0.22us
+2608   2              ucRef = (BYTE)((DWORD)_INTERNAL_SYSTEM_CLK * 22 / 100000 + 1);
+2609   2      
+2610   2              // Force Enable Coast Signal Function Limited High Pulse Less Than "ucRef" Width.
+2611   2              if(ucHSyncPulseCount < ucRef)
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 44  
+
+2612   2              {
+2613   3                  CScalerSetDataPortBit(_SYNC_PROC_ACCESS_PORT_5C, _SYNC_DETECT_TOLERANCE_SET_08, ~_BIT7, _BIT7)
+             -;
+2614   3              }
+2615   2          }
+2616   1          // V016 VGA Patch Note (13) Modify 20100831 End
+2617   1      
+2618   1          pData[0] = (CScalerGetBit(_VSYNC_COUNTER_LEVEL_MSB_4C, 0xff) & 0x70) >> 4;
+2619   1      
+2620   1          if((pData[0] == _XOR_OR_TYPE_CS_WITH_EQR) || (pData[0] == _XOR_OR_TYPE_CS_WITHOUT_EQR))
+2621   1          {
+2622   2              // V016 VGA Patch Note (13) Modify 20100831 Start
+2623   2              // Patch Reason : Enable Coast Signal Cause Picture Distortion If H XOR V Type Was mistaken for Se
+             -rration Type.
+2624   2              // If input source is CS for SOG, Force Enable Coast function
+2625   2              /*
+2626   2              // Get Hsync High Period
+2627   2              CScalerRead(_STABLE_HIGH_PERIOD_H_4A, 2, pData, _AUTOINC);
+2628   2              ((WORD *)pData)[1] = ((pData[0] & 0x07) << 8) | pData[1];
+2629   2      
+2630   2              // Get Hsync Stable Period
+2631   2              CScalerRead(_STABLE_PERIOD_H_50, 2, pData, _AUTOINC);
+2632   2              ((WORD *)pData)[2] = ((pData[0] & 0x07) << 8) | pData[1];
+2633   2      
+2634   2              if(((WORD *)pData)[1] > (((WORD *)pData)[2] / 2))
+2635   2              {
+2636   2                  ucHSyncPulseCount = (BYTE)(((WORD *)pData)[2] - ((WORD *)pData)[1]);
+2637   2              }
+2638   2              else
+2639   2              {
+2640   2                  ucHSyncPulseCount = (BYTE)(((WORD *)pData)[1]);
+2641   2              }
+2642   2              */
+2643   2              // V016 VGA Patch Note (13) Modify 20100831 End
+2644   2      
+2645   2              ///////////////////////////////////////////////////////////////////////////////
+2646   2              // Formula :                                                                 //
+2647   2              //              High Sync Pulse Count                                        //
+2648   2              //          ------------------------------- = 0.48(us)                       //
+2649   2              //            _INTERNAL_SYSTEM_CLK / 1000                                    //
+2650   2              ///////////////////////////////////////////////////////////////////////////////
+2651   2      
+2652   2              // Hsync High Pulse Width = 0.48us
+2653   2              ucRef = (BYTE)((DWORD)_INTERNAL_SYSTEM_CLK * 48 / 100000 + 1);
+2654   2      
+2655   2              // If Hsync High Pulse less than 0.48us, Capture Window Must be samller.
+2656   2              if(ucHSyncPulseCount > ucRef)
+2657   2              {
+2658   3                  CScalerSetByte(_SYNC_PROC_ACCESS_PORT_5C, 0x08);
+2659   3                  CScalerSetByte(_SYNC_PROC_DATA_PORT_5D, 0x04);
+2660   3                  CSyncGetSyncTypeAutoRun();
+2661   3              }
+2662   2              else if((ucHSyncPulseCount == ucRef) || (ucHSyncPulseCount == ucRef - 1))
+2663   2              {
+2664   3                  SET_VGA_INITIAL();
+2665   3                  CModeInitialVGA();
+2666   3      
+2667   3                  // HSync Synchronize Source Select FeedbackHS
+2668   3                  CScalerSetBit(_SYNC_INVERT_48, ~_BIT0, _BIT0);
+2669   3      
+2670   3                  if(CModeMeasureReady() == _TRUE)
+2671   3                  {
+C51 COMPILER V8.02   SYNC                                                                  03/05/2012 13:24:22 PAGE 45  
+
+2672   4                      // Pop up Measure Result
+2673   4                      CScalerSetBit(_MEAS_HS_PERIOD_H_52, ~_BIT6, _BIT6);
+2674   4      
+2675   4                      // Measure IVSyncPulseCount
+2676   4                      CScalerSetBit(_MEAS_HS_VS_HI_SEL_58, ~_BIT0, _BIT0);
+2677   4      
+2678   4                      CScalerRead(_MEAS_HS_VS_HIGH_PERIOD_H_56, 2, &pData[8], _AUTOINC);
+2679   4                      ucVSyncPulseCount = (BYTE)(((pData[8] & 0xF0) << 4) | pData[9]) + 1;
+2680   4      
+2681   4                      if(ucVSyncPulseCount <= 4)
+2682   4                      {
+2683   5                          CScalerSetByte(_SYNC_PROC_ACCESS_PORT_5C, 0x08);
+2684   5                          CScalerSetByte(_SYNC_PROC_DATA_PORT_5D, 0x04);
+2685   5                          CSyncGetSyncTypeAutoRun();
+2686   5                      }
+2687   4                  }
+2688   3      
+2689   3                  CScalerSetBit(_SYNC_INVERT_48, ~_BIT0, 0x00);
+2690   3              }
+2691   2          }
+2692   1      }
+2693          // V013 VGA Patch Note (22) Modify 20100511 End
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3874    ----
+   CONSTANT SIZE    =      6    ----
+   XDATA SIZE       =     10    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      28
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3       4
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

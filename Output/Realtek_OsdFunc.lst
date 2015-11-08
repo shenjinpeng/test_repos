@@ -1,0 +1,1255 @@
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE REALTEK_OSDFUNC
+OBJECT MODULE PLACED IN .\Output\Realtek_OsdFunc.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE User\Realtek OSD\Code\Realtek_OsdFunc.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_
+                    -RTD2472D_DEMO_BOARD) PRINT(.\Output\Realtek_OsdFunc.lst) OBJECT(.\Output\Realtek_OsdFunc.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : OsdFunc.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #define __REALTEK_OSDFX__
+  21          
+  22          #include "Common\Header\Include.h"
+  23          
+  24          #if(_OSD_TYPE == _REALTEK_OSD)
+  25          
+  26          
+  27          //----------------------------------------------------------------------------------------------------
+  28          // OSD Basic Functions
+  29          //----------------------------------------------------------------------------------------------------
+  30          
+  31          
+  32          //--------------------------------------------------
+  33          // Description  :
+  34          // Input Value  :
+  35          // Output Value :
+  36          //--------------------------------------------------
+  37          void COsdFxApplyMapSetting(BYTE ucOsdmaptype)
+  38          {
+  39   1          switch(ucOsdmaptype)
+  40   1          {
+  41   2              case _OSD_MAP0:
+  42   2                  COsdFxCodeWrite(tOSD_ROW_COMMAND0);
+  43   2                  ucOsdMap = _OSD_MAP0;
+  44   2                  break;
+  45   2      
+  46   2              case _OSD_MAP1:
+  47   2                  COsdFxCodeWrite(tOSD_ROW_COMMAND1);
+  48   2                  ucOsdMap = _OSD_MAP1;
+  49   2                  break;
+  50   2      
+  51   2              case _OSD_MAP2:
+  52   2                  COsdFxCodeWrite(tOSD_ROW_COMMAND2);
+  53   2                  ucOsdMap = _OSD_MAP2;
+  54   2                  break;
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 2   
+
+  55   2      
+  56   2              case _OSD_MAP3:
+  57   2                  ucOsdMap = _OSD_MAP3;
+  58   2                  break;
+  59   2      
+  60   2              case _OSD_MAP4:
+  61   2                  ucOsdMap = _OSD_MAP4;
+  62   2                  break;
+  63   2      
+  64   2              case _OSD_MAP5:
+  65   2      
+  66   2                  ucOsdMap = _OSD_MAP5;
+  67   2                  break;
+  68   2          }
+  69   1      
+  70   1          COsdFxSetFrameCtrlCommand();
+  71   1          COsdFxSetCharCommandMap();
+  72   1      }
+  73          
+  74          //--------------------------------------------------
+  75          // Description  :
+  76          // Input Value  :
+  77          // Output Value :
+  78          //--------------------------------------------------
+  79          void COsdFxSetFrameCtrlCommand(void)
+  80          {
+  81   1          pData[0] = 0xc0;
+  82   1          pData[1] = 0x04;
+  83   1          CScalerWrite(_OSD_ADDR_MSB_90, 2, pData, _AUTOINC);
+  84   1          pData[0] = ((tOSD_OSDMAP_INF[ucOsdMap][0] + 1) & 0x00ff);
+  85   1          pData[1] = (((tOSD_OSDMAP_INF[ucOsdMap][0] + 1) & 0x0f00) >> 4) | (_OSD_FONT_START_POSITION & 0x000f);
+  86   1          pData[2] = (_OSD_FONT_START_POSITION & 0x0ff0) >> 4;
+  87   1          CScalerWrite(_OSD_DATA_PORT_92, 3, pData, _NON_AUTOINC);
+  88   1      }
+  89          
+  90          //--------------------------------------------------
+  91          // Description  :
+  92          // Input Value  :
+  93          // Output Value :
+  94          //--------------------------------------------------
+  95          void COsdFxSetCharCommandMap(void)
+  96          {
+  97   1          CScalerSetByte(_OSD_ADDR_MSB_90, 0x50 | (((tOSD_OSDMAP_INF[ucOsdMap][0] + 1) & 0x0f00) >> 8));
+  98   1          CScalerSetByte(_OSD_ADDR_LSB_91, (BYTE)(tOSD_OSDMAP_INF[ucOsdMap][0] + 1));
+  99   1          CScalerWriteAmount(_OSD_DATA_PORT_92, tOSD_OSDMAP_INF[ucOsdMap][0] * tOSD_OSDMAP_INF[ucOsdMap][1], 0x0
+             -0, _NON_AUTOINC);
+ 100   1      
+ 101   1          CScalerSetByte(_OSD_ADDR_MSB_90, 0x90 | (((tOSD_OSDMAP_INF[ucOsdMap][0] + 1) & 0x0f00) >> 8));
+ 102   1          CScalerSetByte(_OSD_ADDR_LSB_91, (BYTE)(tOSD_OSDMAP_INF[ucOsdMap][0] + 1));
+ 103   1          CScalerWriteAmount(_OSD_DATA_PORT_92, tOSD_OSDMAP_INF[ucOsdMap][0] * tOSD_OSDMAP_INF[ucOsdMap][1], 0x1
+             -0, _NON_AUTOINC);
+ 104   1      
+ 105   1          CScalerSetByte(_OSD_ADDR_MSB_90, 0x10 | (((tOSD_OSDMAP_INF[ucOsdMap][0] + 1) & 0x0f00) >> 8));
+ 106   1          CScalerSetByte(_OSD_ADDR_LSB_91, (BYTE)(tOSD_OSDMAP_INF[ucOsdMap][0] + 1));
+ 107   1          CScalerWriteAmount(_OSD_DATA_PORT_92, tOSD_OSDMAP_INF[ucOsdMap][0] * tOSD_OSDMAP_INF[ucOsdMap][1], 0x8
+             -c, _NON_AUTOINC);
+ 108   1      }
+ 109          
+ 110          //--------------------------------------------------
+ 111          // Description  :
+ 112          // Input Value  :
+ 113          // Output Value :
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 3   
+
+ 114          //--------------------------------------------------
+ 115          void COsdFxEnableOsd(void)
+ 116          {
+ 117   1          CTimerWaitForEvent(_EVENT_DEN_STOP);
+ 118   1          CScalerSetBit(_OVERLAY_CTRL_6C, ~_BIT0, _BIT0);
+ 119   1      }
+ 120          
+ 121          //--------------------------------------------------
+ 122          // Description  :
+ 123          // Input Value  :
+ 124          // Output Value :
+ 125          //--------------------------------------------------
+ 126          void COsdFxDisableOsd(void)
+ 127          {
+ 128   1          CTimerWaitForEvent(_EVENT_DEN_STOP);
+ 129   1          CScalerSetBit(_OVERLAY_CTRL_6C, ~_BIT0, 0x00);
+ 130   1      }
+ 131          
+ 132          //--------------------------------------------------
+ 133          // Description  :
+ 134          // Input Value  :
+ 135          // Output Value :
+ 136          //--------------------------------------------------
+ 137          void COsdFxChangeWindowColor(BYTE ucWindowColor, BYTE *pStyle)
+ 138          {
+ 139   1          pData[0] = 0x41;
+ 140   1          pData[1] = ((*(pStyle)) * 4) + (3);
+ 141   1          CScalerWrite(_OSD_ADDR_MSB_90, 2, pData, _AUTOINC);
+ 142   1      
+ 143   1          pData[0] = ((*(pStyle + ((3) + 1) + 1)) & 0xf0) | (ucWindowColor & 0x0f);
+ 144   1          CScalerWrite(_OSD_DATA_PORT_92, 1, pData, _NON_AUTOINC);
+ 145   1      }
+ 146          
+ 147          //--------------------------------------------------
+ 148          // Description  :
+ 149          // Input Value  :
+ 150          // Output Value :
+ 151          //--------------------------------------------------
+ 152          void COsdFxCloseWindow(BYTE ucWinNumber)
+ 153          {
+ 154   1          pData[0] = 0x81;
+ 155   1          pData[1] = (BYTE)(ucWinNumber * 4 + 3);
+ 156   1          pData[2] = 0x00;
+ 157   1          CScalerWrite(_OSD_ADDR_MSB_90, 3, pData, _AUTOINC);
+ 158   1      }
+ 159          
+ 160          //--------------------------------------------------
+ 161          // Description  :
+ 162          // Input Value  :
+ 163          // Output Value :
+ 164          //--------------------------------------------------
+ 165          void COsdFxSlider(BYTE ucRow, BYTE ucCol, BYTE ucLength, WORD usValue, WORD usMax, WORD usMin)
+ 166          {
+ 167   1          BYTE cnt;
+ 168   1      
+ 169   1          usValue = usValue - usMin;
+ 170   1          pData[0] = _L_BAR;
+ 171   1      
+ 172   1          for(cnt = 1; cnt < (ucLength - 1); cnt++)
+ 173   1          {
+ 174   2              pData[cnt] = _0_BAR;
+ 175   2          }
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 4   
+
+ 176   1      
+ 177   1          pData[ucLength - 1] = _R_BAR;
+ 178   1      
+ 179   1          if(usMax > usMin)
+ 180   1          {
+ 181   2              cnt = ((WORD)(usValue * (ucLength - 2))) / (usMax - usMin);
+ 182   2      
+ 183   2              if(cnt < (ucLength - 2))
+ 184   2              {
+ 185   3                  pData[cnt + 1] = (_0_BAR) + (((((WORD)(usValue * (ucLength - 2))) * _SLIDER_RESOLUTION) / (usM
+             -ax - usMin)) % _SLIDER_RESOLUTION);
+ 186   3              }
+ 187   2      
+ 188   2              for(; cnt > 0; cnt--)
+ 189   2              {
+ 190   3                  pData[cnt] = _0_BAR + _SLIDER_RESOLUTION - 1;
+ 191   3              }
+ 192   2          }
+ 193   1      
+ 194   1          COsdFxCalcStartAddress(ucRow, ucCol, _WRITE_BYTE1);
+ 195   1          CScalerWrite(_OSD_DATA_PORT_92, ucLength, pData, _NON_AUTOINC);
+ 196   1      }
+ 197          
+ 198          //--------------------------------------------------
+ 199          // Description  :
+ 200          // Input Value  :
+ 201          //                ucPar:
+ 202          //                bit 0 (Align left or right)   [ 0: Align left     1: Align right        ]
+ 203          //                bit 1 (Force to show number)  [ 0: Disable        1: Enable             ]
+ 204          //                bit 4 ~ 6 (Show numbers)      [ 0 ~ 7: Show 1 ~ 8 numbers               ]
+ 205          // Output Value :
+ 206          //--------------------------------------------------
+ 207          void COsdFxShowNumber(BYTE ucRow, BYTE ucCol, WORD usValue, BYTE ucPar)
+ 208          {
+ 209   1          BYTE index, temp, i;
+ 210   1      
+ 211   1          pData[4] = (_0_ + (usValue / 10000));
+ 212   1          pData[3] = (_0_ + (usValue % 10000) / 1000);
+ 213   1          pData[2] = (_0_ + (usValue % 1000) / 100);
+ 214   1          pData[1] = (_0_ + (usValue % 100) / 10);
+ 215   1          pData[0] = (_0_ + (usValue % 10));
+ 216   1      
+ 217   1          for(index = 0; index < 5; index++)
+ 218   1          {
+ 219   2              if(pData[4 - index] != ((bit)(ucPar & _BIT1) ? 0x00 : _0_))
+ 220   2              {
+ 221   3                  index = 4 - index;
+ 222   3                  break;
+ 223   3              }
+ 224   2          }
+ 225   1      
+ 226   1          if(usValue == 0 && !((bit)(ucPar & 0x02)) )
+ 227   1          {
+ 228   2              index = 0;
+ 229   2          }
+ 230   1      
+ 231   1          if((bit)(ucPar & _BIT1))
+ 232   1          {
+ 233   2              temp = (ucPar & 0x70) >> 4;
+ 234   2              index = (ucPar & 0x70) >> 4;
+ 235   2          }
+ 236   1          else
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 5   
+
+ 237   1          {
+ 238   2              temp = (ucPar & 0x70) >> 4;
+ 239   2              if(temp < index)
+ 240   2              {
+ 241   3                  temp = index;
+ 242   3              }
+ 243   2          }
+ 244   1      
+ 245   1          if((bit)(ucPar & 0x01))     // Align Right
+ 246   1          {
+ 247   2              COsdFxCalcStartAddress(ucRow, ucCol - temp, _WRITE_BYTE1);
+ 248   2          }
+ 249   1          else                        // Align Left
+ 250   1          {
+ 251   2              COsdFxCalcStartAddress(ucRow, ucCol, _WRITE_BYTE1);
+ 252   2          }
+ 253   1      
+ 254   1          for(i = 0; i <= temp; i++)
+ 255   1          {
+ 256   2              if(index >= temp)
+ 257   2              {
+ 258   3                  pData[i + 8] = pData[index - i];
+ 259   3              }
+ 260   2              else
+ 261   2              {
+ 262   3                  if(i < (temp - index))
+ 263   3                  {
+ 264   4                      pData[i + 8] = 0x00;
+ 265   4                  }
+ 266   3                  else
+ 267   3                  {
+ 268   4                      pData[i + 8] = pData[index - (i - (temp - index))];
+ 269   4                  }
+ 270   3              }
+ 271   2          }
+ 272   1      
+ 273   1          CScalerWrite(_OSD_DATA_PORT_92, (temp + 1), &pData[8], _NON_AUTOINC);
+ 274   1      
+ 275   1          //return temp + 1;
+ 276   1      }
+ 277          /*
+ 278          //--------------------------------------------------
+ 279          // Description  :
+ 280          // Input Value  :
+ 281          // Output Value :
+ 282          //--------------------------------------------------
+ 283          void COsdFxShowNorm100Number(BYTE ucRow, BYTE ucCol, WORD usValue, WORD usMax, WORD usMin, BYTE ucPar)
+ 284          {
+ 285              usValue = ((DWORD)(usValue - usMin) * 100) / (usMax - usMin);
+ 286          
+ 287              COsdFxShowNumber(ucRow, ucCol, usValue, ucPar);
+ 288          }
+ 289          */
+ 290          //--------------------------------------------------
+ 291          // Description  :
+ 292          // Input Value  :
+ 293          // Output Value :
+ 294          //--------------------------------------------------
+ 295          void COsdFxCodeWrite(BYTE code *pArray)
+ 296          {
+ 297   1          BYTE cnt, temp;
+ 298   1      
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 6   
+
+ 299   1          CScalerWrite(_OSD_ADDR_MSB_90, 2, pArray, _AUTOINC);
+ 300   1          pArray += 2;
+ 301   1      
+ 302   1          cnt = 0;
+ 303   1      
+ 304   1          while(_TRUE)
+ 305   1          {
+ 306   2              if(*pArray == _EXT_)
+ 307   2              {
+ 308   3                  CScalerWrite(_OSD_DATA_PORT_92, cnt, pArray - cnt, _NON_AUTOINC);
+ 309   3                  cnt = 0;
+ 310   3      
+ 311   3                  if(*(pArray + 1) > 3)
+ 312   3                  {
+ 313   4                      return;
+ 314   4                  }
+ 315   3      
+ 316   3                  temp = _EXT_ + *(pArray + 1);
+ 317   3      
+ 318   3                  if(*(pArray + 2) == _REPEAT_)
+ 319   3                  {
+ 320   4                      CScalerWriteAmount(_OSD_DATA_PORT_92, *(pArray + 3), temp, _NON_AUTOINC);
+ 321   4                      pArray += 4;
+ 322   4                  }
+ 323   3                  else
+ 324   3                  {
+ 325   4                      CScalerWrite(_OSD_DATA_PORT_92, 1, &temp, _NON_AUTOINC);
+ 326   4                      pArray += 2;
+ 327   4                  }
+ 328   3              }
+ 329   2              else if(*pArray == _REPEAT_)
+ 330   2              {
+ 331   3                  CScalerWrite(_OSD_DATA_PORT_92, cnt, pArray - cnt, _NON_AUTOINC);
+ 332   3      
+ 333   3                  CScalerWriteAmount(_OSD_DATA_PORT_92, *(pArray + 1) - 1, *(pArray - 1), _NON_AUTOINC);
+ 334   3      
+ 335   3                  pArray += 2;
+ 336   3                  cnt = 0;
+ 337   3              }
+ 338   2              else if(*pArray == _NEXT_)
+ 339   2              {
+ 340   3                  CScalerWrite(_OSD_DATA_PORT_92, cnt, pArray - cnt, _NON_AUTOINC);
+ 341   3                  pArray++;
+ 342   3                  cnt = 0;
+ 343   3      
+ 344   3                  if(*(pArray) != _END_)
+ 345   3                  {
+ 346   4                      CScalerWrite(_OSD_ADDR_MSB_90, 2, pArray, _AUTOINC);
+ 347   4                      pArray += 2;
+ 348   4                  }
+ 349   3                  else
+ 350   3                  {
+ 351   4                      break;
+ 352   4                  }
+ 353   3              }
+ 354   2              else if(*(pArray) == _END_)
+ 355   2              {
+ 356   3                  CScalerWrite(_OSD_DATA_PORT_92, cnt, pArray - cnt, _NON_AUTOINC);
+ 357   3                  break;
+ 358   3              }
+ 359   2              else
+ 360   2              {
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 7   
+
+ 361   3                  pArray++;
+ 362   3                  cnt++;
+ 363   3              }
+ 364   2          }
+ 365   1      }
+ 366          
+ 367          //--------------------------------------------------
+ 368          // Description  :
+ 369          // Input Value  :
+ 370          // Output Value :
+ 371          //--------------------------------------------------
+ 372          void COsdFxCalcStartAddress(BYTE ucRow, BYTE ucCol, BYTE ucIndicate)
+ 373          {
+ 374   1          WORD startaddress;
+ 375   1          BYTE temp;
+ 376   1      
+ 377   1          startaddress = tOSD_OSDMAP_INF[ucOsdMap][0] + 1;
+ 378   1      
+ 379   1          for(temp = 0; temp < ucRow; temp++)
+ 380   1          {
+ 381   2              startaddress += tOSD_OSDMAP_INF[ucOsdMap][1];
+ 382   2          }
+ 383   1      
+ 384   1          CScalerSetByte(_OSD_ADDR_MSB_90, (BYTE)(((startaddress + ucCol)  & 0x0fff) >> 8 ) | (((ucIndicate << 2
+             -) + 1) << 4));
+ 385   1          CScalerSetByte(_OSD_ADDR_LSB_91, (BYTE)((startaddress + ucCol) & 0x00ff));
+ 386   1      }
+ 387          
+ 388          //--------------------------------------------------
+ 389          // Description  :
+ 390          // Input Value  :
+ 391          // Output Value :
+ 392          //--------------------------------------------------
+ 393          void COsdFxLoadText(BYTE ucRow, BYTE ucCol, BYTE ucSelect, BYTE code *pArray)
+ 394          {
+ 395   1          BYTE cnt, cnt1, cnt2, ss, temp, temp1, temp2, temp3;
+ 396   1          WORD length;
+ 397   1      
+ 398   1          length = cnt = cnt1 = cnt2 = ss = temp = temp1 = 0;
+ 399   1      
+ 400   1          while(_TRUE)
+ 401   1          {
+ 402   2              if(*(pArray + cnt) == _END_)
+ 403   2              {
+ 404   3                  if(temp == ucSelect)
+ 405   3                  {
+ 406   4                      break;
+ 407   4                  }
+ 408   3                  else
+ 409   3                  {
+ 410   4                      pArray += (cnt + 1);
+ 411   4                      cnt = 0;
+ 412   4                  }
+ 413   3                  temp++;
+ 414   3              }
+ 415   2              cnt++;
+ 416   2          }
+ 417   1      
+ 418   1          cnt = cnt1 = cnt2 = temp1 = 0;
+ 419   1          temp3 = ucRow;
+ 420   1          COsdFxCalcStartAddress(ucRow, ucCol, _WRITE_BYTE0);
+ 421   1          while(*(pArray + cnt) != _END_)
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 8   
+
+ 422   1          {
+ 423   2              switch(*(pArray + cnt))
+ 424   2              {
+ 425   3                  case _EXT_:
+ 426   3                      if(*(pArray + cnt + 1) > 3)
+ 427   3                      {
+ 428   4                          return;
+ 429   4                      }
+ 430   3                      temp = _EXT_ + *(pArray + cnt + 1);
+ 431   3                      cnt += 2;
+ 432   3                      break;
+ 433   3      
+ 434   3                  case _REPEAT_:
+ 435   3                      if(temp1 < (*(pArray + cnt + 1) - 1))
+ 436   3                      {
+ 437   4                          temp1++;
+ 438   4                      }
+ 439   3                      else
+ 440   3                      {
+ 441   4                          cnt += 2;
+ 442   4                          temp1 = 0;
+ 443   4                          continue;
+ 444   4                      }
+ 445   3                      break;
+ 446   3      
+ 447   3                  case _NEXT_:
+ 448   3                      if(length % 12)
+ 449   3                      {
+ 450   4                          COsdFxCalcStartAddress(ucRow, ucCol + cnt1, _WRITE_BYTEALL);
+ 451   4                          pData[0] = 0x00;
+ 452   4                          pData[1] = ((12 - length % 12) < 4) ? (12 - length % 12) + 12 : (12 - length % 12);
+ 453   4                          pData[2] = 0x00;
+ 454   4                          CScalerWrite(_OSD_DATA_PORT_92, 3, pData, _NON_AUTOINC);
+ 455   4                      }
+ 456   3                      cnt++;
+ 457   3                      COsdFxCalcStartAddress(++ucRow, ucCol, _WRITE_BYTE0);
+ 458   3                      length = 0;
+ 459   3                      cnt1 = 0;
+ 460   3                      continue;
+ 461   3      
+ 462   3                  default:
+ 463   3                      temp = *(pArray + cnt);
+ 464   3                      cnt++;
+ 465   3                      break;
+ 466   3              }
+ 467   2      
+ 468   2              cnt1++;
+ 469   2              ss = 0;
+ 470   2              temp2 = 0;
+ 471   2              while(_TRUE)
+ 472   2              {
+ 473   3                  if((temp == (tOSD_CHARWIDTH_TABLE[0])[ss*2]) && ((tOSD_CHARWIDTH_TABLE[0])[ss*2+1] != _END_))
+ 474   3                  {
+ 475   4                      pData[0] = (tOSD_CHARWIDTH_TABLE[0])[ss*2+1];
+ 476   4                      length += ((tOSD_CHARWIDTH_TABLE[0])[ss*2+1] & 0x0f);
+ 477   4                      CScalerWrite(_OSD_DATA_PORT_92, 1, pData, _NON_AUTOINC);
+ 478   4                      break;
+ 479   4                  }
+ 480   3                  else
+ 481   3                  {
+ 482   4                      if(((tOSD_CHARWIDTH_TABLE[0])[ss*2] == _END_) && ((tOSD_CHARWIDTH_TABLE[0])[ss*2+1] == _EN
+             -D_))
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 9   
+
+ 483   4                      {
+ 484   5                          temp2 = 1;
+ 485   5                          break;
+ 486   5                      }
+ 487   4                  }
+ 488   3                  ss++;
+ 489   3              }
+ 490   2      
+ 491   2              ss = 0;
+ 492   2              while(temp2 == 1)
+ 493   2              {
+ 494   3                  if((temp == (tOSD_CHARWIDTH_TABLE[ucSelect+1])[ss*2]) && ((tOSD_CHARWIDTH_TABLE[ucSelect+1])[s
+             -s*2+1] != _END_))
+ 495   3                  {
+ 496   4                      pData[0] = (tOSD_CHARWIDTH_TABLE[ucSelect+1])[ss*2+1];
+ 497   4                      length += ((tOSD_CHARWIDTH_TABLE[ucSelect+1])[ss*2+1] & 0x0f);
+ 498   4                      CScalerWrite(_OSD_DATA_PORT_92, 1, pData, _NON_AUTOINC);
+ 499   4                      break;
+ 500   4                  }
+ 501   3                  else
+ 502   3                  {
+ 503   4                      if(((tOSD_CHARWIDTH_TABLE[ucSelect+1])[ss*2] == _END_) && ((tOSD_CHARWIDTH_TABLE[ucSelect+
+             -1])[ss*2+1] == _END_))
+ 504   4                      {
+ 505   5                          COsdFxCalcStartAddress(ucRow, ucCol + cnt1, _WRITE_BYTE0);
+ 506   5                          length += 12;
+ 507   5                          break;
+ 508   5                      }
+ 509   4                  }
+ 510   3                  ss++;
+ 511   3              }
+ 512   2          }
+ 513   1      
+ 514   1          if(length % 12)
+ 515   1          {
+ 516   2              COsdFxCalcStartAddress(ucRow, ucCol + cnt1, _WRITE_BYTEALL);
+ 517   2              pData[0] = 0x00;
+ 518   2              pData[1] = ((12 - length % 12) < 4) ? (12 - length % 12) + 12 : (12 - length % 12);
+ 519   2              pData[2] = 0x00;
+ 520   2      
+ 521   2              CScalerWrite(_OSD_DATA_PORT_92, 3, pData, _NON_AUTOINC);
+ 522   2          }
+ 523   1      
+ 524   1          ucRow = temp3;
+ 525   1          cnt = 0;
+ 526   1          temp1 = 0;
+ 527   1          COsdFxCalcStartAddress(ucRow, ucCol, _WRITE_BYTE1);
+ 528   1          while(*(pArray + cnt) != _END_)
+ 529   1          {
+ 530   2              switch(*(pArray + cnt))
+ 531   2              {
+ 532   3                  case _EXT_:
+ 533   3                      if(*(pArray + cnt + 1) > 3)
+ 534   3                      {
+ 535   4                          return;
+ 536   4                      }
+ 537   3                      temp = _EXT_ + *(pArray + cnt + 1);
+ 538   3                      cnt += 2;
+ 539   3                      break;
+ 540   3      
+ 541   3                  case _REPEAT_:
+ 542   3                      if(temp1 < (*(pArray + cnt + 1) - 1))
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 10  
+
+ 543   3                      {
+ 544   4                          temp1++;
+ 545   4                      }
+ 546   3                      else
+ 547   3                      {
+ 548   4                          cnt += 2;
+ 549   4                          temp1 = 0;
+ 550   4                          continue;
+ 551   4                      }
+ 552   3                      break;
+ 553   3      
+ 554   3                  case _NEXT_:
+ 555   3                      cnt++;
+ 556   3                      COsdFxCalcStartAddress(++ucRow, ucCol, _WRITE_BYTE1);
+ 557   3                      continue;
+ 558   3      
+ 559   3                  default:
+ 560   3                      temp = *(pArray + cnt);
+ 561   3                      cnt++;
+ 562   3                      break;
+ 563   3              }
+ 564   2      
+ 565   2              CScalerWrite(_OSD_DATA_PORT_92, 1, &temp, _NON_AUTOINC);
+ 566   2          }
+ 567   1      }
+ 568          
+ 569          //--------------------------------------------------
+ 570          // Description  :
+ 571          // Input Value  :
+ 572          // Output Value :
+ 573          //--------------------------------------------------
+ 574          BYTE COsdFxGetColWithinText(BYTE ucPos, BYTE ucSelect, BYTE code *pArray)
+ 575          {
+ 576   1          BYTE cnt, ss, temp, temp1, temp2;
+ 577   1          WORD length;
+ 578   1      
+ 579   1          length = cnt = ss = temp = temp1 = 0;
+ 580   1      
+ 581   1          while(_TRUE)
+ 582   1          {
+ 583   2              if(*(pArray + cnt) == _END_)
+ 584   2              {
+ 585   3                  if(temp == ucSelect)
+ 586   3                  {
+ 587   4                      break;
+ 588   4                  }
+ 589   3                  else
+ 590   3                  {
+ 591   4                      pArray += (cnt + 1);
+ 592   4                      cnt = 0;
+ 593   4                  }
+ 594   3                  temp++;
+ 595   3              }
+ 596   2              cnt++;
+ 597   2          }
+ 598   1      
+ 599   1          cnt = temp1 = 0;
+ 600   1      
+ 601   1          while(*(pArray + cnt) != _END_)
+ 602   1          {
+ 603   2              switch(*(pArray + cnt))
+ 604   2              {
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 11  
+
+ 605   3                  case _EXT_:
+ 606   3                      if(*(pArray + cnt + 1) > 3)
+ 607   3                      {
+ 608   4                          return 0;
+ 609   4                      }
+ 610   3                      temp = _EXT_ + *(pArray + cnt + 1);
+ 611   3                      cnt += 2;
+ 612   3                      break;
+ 613   3      
+ 614   3                  case _REPEAT_:
+ 615   3                      if(temp1 < (*(pArray + cnt + 1) - 1))
+ 616   3                      {
+ 617   4                          temp1++;
+ 618   4                      }
+ 619   3                      else
+ 620   3                      {
+ 621   4                          cnt += 2;
+ 622   4                          temp1 = 0;
+ 623   4                          continue;
+ 624   4                      }
+ 625   3                      break;
+ 626   3      
+ 627   3                  default:
+ 628   3                      temp = *(pArray + cnt);
+ 629   3                      cnt++;
+ 630   3                      break;
+ 631   3              }
+ 632   2      
+ 633   2              ucPos++;
+ 634   2              ss = 0;
+ 635   2              temp2 = 0;
+ 636   2              while(_TRUE)
+ 637   2              {
+ 638   3                  if((temp == (tOSD_CHARWIDTH_TABLE[0])[ss*2]) && ((tOSD_CHARWIDTH_TABLE[0])[ss*2+1] != _END_))
+ 639   3                  {
+ 640   4                      length += ((tOSD_CHARWIDTH_TABLE[0])[ss*2+1] & 0x0f);
+ 641   4                      break;
+ 642   4                  }
+ 643   3                  else
+ 644   3                  {
+ 645   4                      if(((tOSD_CHARWIDTH_TABLE[0])[ss*2] == _END_) && ((tOSD_CHARWIDTH_TABLE[0])[ss*2+1] == _EN
+             -D_))
+ 646   4                      {
+ 647   5                          temp2 = 1;
+ 648   5                          break;
+ 649   5                      }
+ 650   4                  }
+ 651   3                  ss++;
+ 652   3              }
+ 653   2      
+ 654   2              ss = 0;
+ 655   2              while(temp2 == 1)
+ 656   2              {
+ 657   3                  if((temp == (tOSD_CHARWIDTH_TABLE[ucSelect+1])[ss*2]) && ((tOSD_CHARWIDTH_TABLE[ucSelect+1])[s
+             -s*2+1] != _END_))
+ 658   3                  {
+ 659   4                      length += ((tOSD_CHARWIDTH_TABLE[ucSelect+1])[ss*2+1] & 0x0f);
+ 660   4                      break;
+ 661   4                  }
+ 662   3                  else
+ 663   3                  {
+ 664   4                      if(((tOSD_CHARWIDTH_TABLE[ucSelect+1])[ss*2] == _END_) && ((tOSD_CHARWIDTH_TABLE[ucSelect+
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 12  
+
+             -1])[ss*2+1] == _END_))
+ 665   4                      {
+ 666   5                          length += 12;
+ 667   5                          break;
+ 668   5                      }
+ 669   4                  }
+ 670   3                  ss++;
+ 671   3              }
+ 672   2          }
+ 673   1      
+ 674   1          temp = 12 - length % 12;
+ 675   1          if(length % 12)
+ 676   1          {
+ 677   2              cnt = (temp < 4) ? temp + 12 : temp;
+ 678   2          }
+ 679   1          else
+ 680   1          {
+ 681   2              cnt = 0;
+ 682   2          }
+ 683   1      
+ 684   1          if(cnt == 0)
+ 685   1          {
+ 686   2              cnt = 0;
+ 687   2          }
+ 688   1          else if( cnt < 12)
+ 689   1          {
+ 690   2              cnt = 1;
+ 691   2          }
+ 692   1          else
+ 693   1          {
+ 694   2              cnt = 2;
+ 695   2          }
+ 696   1      
+ 697   1          temp = (BYTE)(length / 12) + cnt;
+ 698   1      
+ 699   1          return (ucPos - temp) + ((length % 12) ? 1 : 0);
+ 700   1      }
+ 701          
+ 702          //--------------------------------------------------
+ 703          // Description  :
+ 704          // Input Value  :
+ 705          // Output Value :
+ 706          //--------------------------------------------------
+ 707          void COsdFxLoadIcon(BYTE ucRow, BYTE ucCol, BYTE code *pArray)
+ 708          {
+ 709   1          COsdFxLoadText(ucRow, ucCol, 0, pArray);
+ 710   1      }
+ 711          
+ 712          //--------------------------------------------------
+ 713          // Description  :
+ 714          // Input Value  :
+ 715          // Output Value :
+ 716          //--------------------------------------------------
+ 717          void COsdFxChange1bitColor(BYTE ucRow, BYTE ucCol, BYTE ucSizeW, BYTE ucSizeH, BYTE ucForegroundColor, BYT
+             -E ucBackgroundColor)
+ 718          {
+ 719   1          BYTE cntY, temp;
+ 720   1      
+ 721   1          temp = ((ucForegroundColor & 0x0f) << 4) | (ucBackgroundColor & 0x0f);
+ 722   1      
+ 723   1          for(cntY = 0; cntY < ucSizeH; cntY++)
+ 724   1          {
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 13  
+
+ 725   2              COsdFxCalcStartAddress(ucRow + cntY, ucCol, _WRITE_BYTE2);
+ 726   2      
+ 727   2              CScalerWriteAmount(_OSD_DATA_PORT_92, ucSizeW, temp, _NON_AUTOINC);
+ 728   2          }
+ 729   1      }
+ 730          
+ 731          //--------------------------------------------------
+ 732          // Description  :
+ 733          // Input Value  :
+ 734          // Output Value :
+ 735          //--------------------------------------------------
+ 736          void COsdFxChange2bitColor(BYTE ucRow, BYTE ucCol, BYTE ucSizeW, BYTE ucSizeH, BYTE ucColor0, BYTE ucColor
+             -1, BYTE ucColor2, BYTE ucColor3)
+ 737          {
+ 738   1          BYTE cntY, temp;
+ 739   1      
+ 740   1          temp = 0xa0 | ((ucColor3 & 0x07) << 1) | ((ucColor0 & 0x04) >> 2);
+ 741   1      
+ 742   1          for(cntY = 0; cntY < ucSizeH; cntY++)
+ 743   1          {
+ 744   2              COsdFxCalcStartAddress(ucRow + cntY, ucCol, _WRITE_BYTE0);
+ 745   2      
+ 746   2              CScalerWriteAmount(_OSD_DATA_PORT_92, ucSizeW, temp, _NON_AUTOINC);
+ 747   2          }
+ 748   1      
+ 749   1          temp = ((ucColor0 & 0x03) << 6) | ((ucColor2 & 0x07) << 3) | (ucColor1 & 0x07);
+ 750   1      
+ 751   1          for(cntY = 0; cntY < ucSizeH; cntY++)
+ 752   1          {
+ 753   2              COsdFxCalcStartAddress(ucRow + cntY, ucCol, _WRITE_BYTE2);
+ 754   2      
+ 755   2              CScalerWriteAmount(_OSD_DATA_PORT_92, ucSizeW, temp, _NON_AUTOINC);
+ 756   2          }
+ 757   1      
+ 758   1      }
+ 759          /*
+ 760          //--------------------------------------------------
+ 761          // Description  :
+ 762          // Input Value  :
+ 763          // Output Value :
+ 764          //--------------------------------------------------
+ 765          void COsdFxChange4bitLUTColor(BYTE ucRow, BYTE ucCol, BYTE ucSizeW, BYTE ucSizeH, BYTE ucColor0)
+ 766          {
+ 767              BYTE ucCntY, ucTemp;
+ 768          
+ 769              ucTemp = 0x90 | (ucColor0 & 0x0f);
+ 770          
+ 771              for(ucCntY=0;ucCntY<ucSizeH;ucCntY++)
+ 772              {
+ 773                  COsdFxCalcStartAddress(ucRow + ucCntY, ucCol, _WRITE_BYTE0);
+ 774          
+ 775                  CScalerWriteAmount(_OSD_DATA_PORT_92, ucSizeW, ucTemp, _NON_AUTOINC);
+ 776              }
+ 777          
+ 778              ucTemp = 0x00;
+ 779          
+ 780              for(ucCntY=0;ucCntY<ucSizeH;ucCntY++)
+ 781              {
+ 782                  COsdFxCalcStartAddress(ucRow + ucCntY, ucCol, _WRITE_BYTE2);
+ 783          
+ 784                  CScalerWriteAmount(_OSD_DATA_PORT_92, ucSizeW, ucTemp, _NON_AUTOINC);
+ 785              }
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 14  
+
+ 786          }
+ 787          */
+ 788          //--------------------------------------------------
+ 789          // Description  :
+ 790          // Input Value  :
+ 791          // Output Value :
+ 792          //--------------------------------------------------
+ 793          void COsdFxDrawWindow(WORD usXStart, WORD usYStart, WORD usXEnd, WORD usYEnd, BYTE *pStyle)
+ 794          {
+ 795   1          BYTE cnt0, cnt1;
+ 796   1      
+ 797   1          // V016 System Patch Note (1) Modify 20100729 Start
+ 798   1          // Patch Reason : Modify OSD Set position and Draw Window Function
+ 799   1          // Set double buffer depth to be 6
+ 800   1          CScalerSetBit(_OSD_SCRAMBLE_93, ~(_BIT0 | _BIT1 | _BIT2), (_BIT2 | _BIT0));
+ 801   1          // V016 System Patch Note (1) Modify 20100729 End
+ 802   1      
+ 803   1          cnt0 = CScalerGetBit(_OVERLAY_CTRL_6C, _BIT0);
+ 804   1      
+ 805   1          pData[0] = (cnt0 == 0x00) ? 0xc1 : 0xe1;
+ 806   1          pData[1] = ((*(pStyle)) * 4) + 1;
+ 807   1          CScalerWrite(_OSD_ADDR_MSB_90, 2, pData, _AUTOINC);
+ 808   1      
+ 809   1      #if(_SCALER_TYPE == _RTD2472D)
+ 810   1          pData[0] = ((usXStart & 0x03F) << 2);
+ 811   1          pData[1] = (((usYStart & 0x007) << 5) | ((usXStart & 0x7C0) >> 6));
+ 812   1          pData[2] = (usYStart >> 3);
+ 813   1          pData[3] = ((usXEnd & 0x03F) << 2);
+ 814   1          pData[4] = (((usYEnd & 0x007) << 5) | ((usXEnd & 0x7C0) >> 6));
+ 815   1          pData[5] = (usYEnd >> 3);
+ 816   1      #elif((_SCALER_TYPE == _RTD2545LR) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  pData[0] = ((usXStart & 0x03F) << 2) | ((usXStart & 0x800) << 1) | (usYStart & 0x800);
+                  pData[1] = (((usYStart & 0x007) << 5) | ((usXStart & 0x7C0) >> 6));
+                  pData[2] = ((usYStart & 0x7F8) >> 3);
+                  pData[3] = ((usXEnd & 0x03F) << 2) | ((usXEnd & 0x800) << 1) | (usYEnd & 0x800);
+                  pData[4] = (((usYEnd & 0x007) << 5) | ((usXEnd & 0x7C0) >> 6));
+                  pData[5] = ((usYEnd & 0x7F8) >> 3);
+              #else
+                  NoSetting !!
+              #endif  // End of #if(_SCALER_TYPE == _RTD2472D)
+ 826   1      
+ 827   1          CScalerWrite(_OSD_DATA_PORT_92, 6, pData, _NON_AUTOINC);
+ 828   1      
+ 829   1          // V016 System Patch Note (1) Modify 20100729 Start
+ 830   1          // Patch Reason : Modify OSD Set position and Draw Window Function
+ 831   1          /*
+ 832   1          CTimerDelayXms(40);
+ 833   1          */
+ 834   1          if(cnt0 == 0x01)
+ 835   1          {
+ 836   2              CTimerWaitForEvent(_EVENT_DVS);
+ 837   2          }
+ 838   1          // V016 System Patch Note (1) Modify 20100729 End
+ 839   1      
+ 840   1          for(cnt1 = 0; cnt1 < 2; cnt1++)
+ 841   1          {
+ 842   2              pData[0] = 0xc1;
+ 843   2              pData[1] = ((*(pStyle)) * 4) + (cnt1 * 3);
+ 844   2              CScalerWrite(_OSD_ADDR_MSB_90, 2, pData, _AUTOINC);
+ 845   2      
+ 846   2              for(cnt0 = 0; cnt0 < 3; cnt0++)
+ 847   2              {
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 15  
+
+ 848   3                  pData[cnt0] = (*(pStyle + ((cnt1 * 3) + cnt0) + 1));
+ 849   3              }
+ 850   2      
+ 851   2              CScalerWrite(_OSD_DATA_PORT_92, 3, pData, _NON_AUTOINC);
+ 852   2          }
+ 853   1      }
+ 854          
+ 855          
+ 856          void COsdFxDisableWindow(BYTE window)
+ 857          {
+ 858   1      
+ 859   1              pData[0] = 0x81;
+ 860   1              pData[1] = window*4+3 ;
+ 861   1              CScalerWrite(_OSD_ADDR_MSB_90, 2, pData, _AUTOINC);
+ 862   1              pData[0] = 0x00;
+ 863   1              CScalerWrite(_OSD_DATA_PORT_92, 1, pData, _AUTOINC);
+ 864   1      
+ 865   1      
+ 866   1      }
+ 867          
+ 868          void COsdFactoryReset(void)
+ 869          {
+ 870   1      
+ 871   1      stSystemData.BackLight=0x80;
+ 872   1      if(GET_INPUTSOURCE_TYPE()==_SOURCE_VGA)
+ 873   1      {
+ 874   2      stConBriData.Brightness=0x7e;//_BRIGHTNESS_VGA;
+ 875   2      stConBriData.Contrast=0x80;//_CONTRAST_VGA;
+ 876   2      stConBriData.Dicom=00;
+ 877   2      stConBriData.Gamma=00;
+ 878   2      stConBriData.DicomLumi=80;
+ 879   2      }
+ 880   1      else
+ 881   1      {
+ 882   2      stConBriData.Brightness=0x80;//_BRIGHTNESS_DVI;
+ 883   2      stConBriData.Contrast=0x80;//_CONTRAST_DVI;
+ 884   2      stConBriData.Dicom=00;
+ 885   2      stConBriData.Gamma=00;
+ 886   2      stConBriData.DicomLumi=80;
+ 887   2      
+ 888   2      }
+ 889   1      
+ 890   1      CEepromSaveBriConData();
+ 891   1      CEepromSaveSystemData();
+ 892   1      CModeResetMode();
+ 893   1      }
+ 894          
+ 895          
+ 896          //--------------------------------------------------
+ 897          // Description  :
+ 898          // Input Value  :
+ 899          // Output Value :
+ 900          //--------------------------------------------------
+ 901          void COsdFxHLine(BYTE ucRow, BYTE ucCol, BYTE ucLength, BYTE ucValue, BYTE ucIndicate)
+ 902          {
+ 903   1          COsdFxCalcStartAddress(ucRow, ucCol, ucIndicate);
+ 904   1      
+ 905   1          if(ucIndicate == _WRITE_BYTEALL)
+ 906   1          {
+ 907   2              CScalerWriteAmount(_OSD_DATA_PORT_92, ucLength * 3, ucValue, _NON_AUTOINC);
+ 908   2          }
+ 909   1          else
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 16  
+
+ 910   1          {
+ 911   2              CScalerWriteAmount(_OSD_DATA_PORT_92, ucLength, ucValue, _NON_AUTOINC);
+ 912   2          }
+ 913   1      }
+ 914          /*
+ 915          //--------------------------------------------------
+ 916          // Description  :
+ 917          // Input Value  :
+ 918          // Output Value :
+ 919          //--------------------------------------------------
+ 920          void COsdFxVLine(BYTE ucRow, BYTE ucCol, BYTE ucLength, BYTE ucValue, BYTE ucIndicate)
+ 921          {
+ 922              BYTE cnt;
+ 923          
+ 924              for(cnt=0;cnt<ucLength;cnt++)
+ 925              {
+ 926                  COsdFxCalcStartAddress(ucRow + cnt, ucCol, ucIndicate);
+ 927          
+ 928                  if(ucIndicate == _WRITE_BYTEALL)
+ 929                      CScalerWriteAmount(_OSD_DATA_PORT_92, 3, ucValue, _NON_AUTOINC);
+ 930                  else
+ 931                      CScalerWriteAmount(_OSD_DATA_PORT_92, 1, ucValue, _NON_AUTOINC);
+ 932              }
+ 933          }
+ 934          */
+ 935          //--------------------------------------------------
+ 936          // Description  :
+ 937          // Input Value  :
+ 938          // Output Value :
+ 939          //--------------------------------------------------
+ 940          void COsdFxSetPosition(WORD usOsdActWidth, WORD usOsdActHeight, BYTE ucHPos, BYTE ucVPos, BYTE ucPar)
+ 941          {
+ 942   1          if(ucHPos > _OSD_HPOSITION_RANGE)
+ 943   1          {
+ 944   2              ucHPos = _OSD_HPOSITION_RANGE;
+ 945   2          }
+ 946   1      
+ 947   1          if(ucVPos > _OSD_VPOSITION_RANGE)
+ 948   1          {
+ 949   2              ucVPos = _OSD_VPOSITION_RANGE;
+ 950   2          }
+ 951   1      
+ 952   1          // V016 System Patch Note (1) Modify 20100729 Start
+ 953   1          // Patch Reason : Modify OSD Set position and Draw Window Function
+ 954   1          /*
+ 955   1      // For Bank Switch Program Modify Start
+ 956   1      //  usOsdActWidth  = _OSD_HPOSITION_OFFSET + ((DWORD)(ucHPos)*((Panel[ucPanelSelect].DHEndPos - Panel[ucPa
+             -nelSelect].DHStartPos)/4 - usOsdActWidth/4 - 4)) / _OSD_HPOSITION_RANGE;
+ 957   1      //  usOsdActHeight = _OSD_VPOSITION_OFFSET + ((DWORD)(_OSD_VPOSITION_RANGE - ucVPos)*((Panel[ucPanelSelect
+             -].DVEndPos - Panel[ucPanelSelect].DVStartPos)/4 - usOsdActHeight/4 - 6)) / _OSD_VPOSITION_RANGE;
+ 958   1      
+ 959   1          usOsdActWidth = _OSD_HPOSITION_OFFSET + ((DWORD)(ucHPos)*(stDisplayInfo.DHWidth / 4 - usOsdActWidth / 
+             -4 - 4)) / _OSD_HPOSITION_RANGE;
+ 960   1          usOsdActHeight = _OSD_VPOSITION_OFFSET + ((DWORD)(_OSD_VPOSITION_RANGE - ucVPos)*(stDisplayInfo.DVHeig
+             -ht / 4 - usOsdActHeight / 4 - 6)) / _OSD_VPOSITION_RANGE;
+ 961   1      // For Bank Switch Program Modify End
+ 962   1      
+ 963   1          CScalerSetBit(_OSD_SCRAMBLE_93, 0xf8, 0x02);
+ 964   1      
+ 965   1          pData[0] = CScalerGetBit(_OVERLAY_CTRL_6C, _BIT0);
+ 966   1      
+ 967   1          pData[0] = (pData[0] == 0x00) ? 0xc0 : 0xe0;
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 17  
+
+ 968   1          pData[1] = 0x00;
+ 969   1          CScalerWrite(_OSD_ADDR_MSB_90, 2, pData, _AUTOINC);
+ 970   1      
+ 971   1          pData[0] = usOsdActHeight >> 1;
+ 972   1          pData[1] = (BYTE)(usOsdActWidth >> 2);
+ 973   1          pData[2] = ((BYTE)(usOsdActWidth & 0x0003) << 6) | ((usOsdActHeight & 0x01) << 5) | ucPar;
+ 974   1          CScalerWrite(_OSD_DATA_PORT_92, 3, pData, _NON_AUTOINC);
+ 975   1      
+ 976   1          CTimerWaitForEvent(_EVENT_DEN_STOP);
+ 977   1          CTimerWaitForEvent(_EVENT_DEN_STOP);
+ 978   1          CScalerSetBit(_OSD_SCRAMBLE_93, 0xf8, 0x05);
+ 979   1          */
+ 980   1          if(usOsdActWidth > _PANEL_DH_WIDTH)
+ 981   1          {
+ 982   2              usOsdActWidth = _PANEL_DH_WIDTH;
+ 983   2          }
+ 984   1      
+ 985   1          if(usOsdActHeight > _PANEL_DV_HEIGHT)
+ 986   1          {
+ 987   2              usOsdActHeight = _PANEL_DV_HEIGHT;
+ 988   2          }
+ 989   1      
+ 990   1          // Vertical delay unit 1 line, Horizontal delay unit 4 pixels.
+ 991   1          usOsdActWidth = _OSD_HPOSITION_OFFSET + ((DWORD)(_PANEL_DH_WIDTH - usOsdActWidth) * ucHPos / _OSD_HPOS
+             -ITION_RANGE) / 4;
+ 992   1          usOsdActHeight = _OSD_VPOSITION_OFFSET + (DWORD)(_PANEL_DV_HEIGHT - usOsdActHeight) * ucVPos / _OSD_VP
+             -OSITION_RANGE;
+ 993   1      
+ 994   1          pData[0] = 0xC0;
+ 995   1          pData[1] = 0x00;
+ 996   1          CScalerWrite(_OSD_ADDR_MSB_90, 2, pData, _AUTOINC);
+ 997   1      
+ 998   1          pData[0] = usOsdActHeight >> 3;
+ 999   1          pData[1] = (BYTE)(usOsdActWidth >> 2);
+1000   1          pData[2] = ((BYTE)(usOsdActWidth & 0x03) << 6) | ((usOsdActHeight & 0x07) << 3) | ucPar;
+1001   1          CScalerWrite(_OSD_DATA_PORT_92, 3, pData, _NON_AUTOINC);
+1002   1      
+1003   1          // Frame control register 000h has their own double buffer, must wait for next dvs
+1004   1          CTimerWaitForEvent(_EVENT_DVS);
+1005   1          // V016 System Patch Note (1) Modify 20100729 End
+1006   1      }
+1007          
+1008          //--------------------------------------------------
+1009          // Description  :
+1010          // Input Value  :
+1011          // Output Value :
+1012          //--------------------------------------------------
+1013          WORD COsdFxGetAdcClockRange(BYTE ucPar)
+1014          {
+1015   1          WORD delta;
+1016   1      
+1017   1          CAdjustCheckAdcClockRange(stModeUserData.Clock, &delta);
+1018   1      
+1019   1          if(ucPar == _GET_CLOCKRANGE_MAX)
+1020   1          {
+1021   2              if(delta < _CLOCK_BIAS)
+1022   2              {
+1023   3                  ((WORD *)pData)[5] = (stModeInfo.IHTotal + delta);
+1024   3              }
+1025   2              else
+1026   2              {
+1027   3                  if(stModeUserCenterData.CenterClock < stModeInfo.IHTotal)
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 18  
+
+1028   3                  {
+1029   4                      if((stModeUserCenterData.CenterClock - stModeInfo.IHTotal + delta) < _CLOCK_BIAS)
+1030   4                      {
+1031   5                          ((WORD *)pData)[5] = (stModeInfo.IHTotal - delta + 2 * _CLOCK_BIAS);
+1032   5                      }
+1033   4                      else
+1034   4                      {
+1035   5                          ((WORD *)pData)[5] = (stModeUserCenterData.CenterClock + _CLOCK_BIAS);
+1036   5                      }
+1037   4                  }
+1038   3                  else
+1039   3                  {
+1040   4                      if((stModeInfo.IHTotal + delta - stModeUserCenterData.CenterClock) < _CLOCK_BIAS)
+1041   4                      {
+1042   5                          ((WORD *)pData)[5] = (stModeInfo.IHTotal + delta);
+1043   5                      }
+1044   4                      else
+1045   4                      {
+1046   5                          ((WORD *)pData)[5] = (stModeUserCenterData.CenterClock + _CLOCK_BIAS);
+1047   5                      }
+1048   4                  }
+1049   3              }
+1050   2          }
+1051   1          else if(ucPar == _GET_CLOCKRANGE_MIN)
+1052   1          {
+1053   2              if(delta < _CLOCK_BIAS)
+1054   2              {
+1055   3                  ((WORD *)pData)[5] = (stModeInfo.IHTotal - delta);
+1056   3              }
+1057   2              else
+1058   2              {
+1059   3                  if(stModeUserCenterData.CenterClock < stModeInfo.IHTotal)
+1060   3                  {
+1061   4                      if((stModeUserCenterData.CenterClock - stModeInfo.IHTotal + delta) < _CLOCK_BIAS)
+1062   4                      {
+1063   5                          ((WORD *)pData)[5] = (stModeInfo.IHTotal - delta);
+1064   5                      }
+1065   4                      else
+1066   4                      {
+1067   5                          ((WORD *)pData)[5] = (stModeUserCenterData.CenterClock - _CLOCK_BIAS);
+1068   5                      }
+1069   4                  }
+1070   3                  else
+1071   3                  {
+1072   4                      if((stModeInfo.IHTotal + delta - stModeUserCenterData.CenterClock) < _CLOCK_BIAS)
+1073   4                      {
+1074   5                          ((WORD *)pData)[5] = (stModeInfo.IHTotal + delta - 2 * _CLOCK_BIAS);
+1075   5                       }
+1076   4                      else
+1077   4                      {
+1078   5                          ((WORD *)pData)[5] = (stModeUserCenterData.CenterClock - _CLOCK_BIAS);
+1079   5                      }
+1080   4                  }
+1081   3              }
+1082   2          }
+1083   1      
+1084   1          if(CAutoCheckClock(((WORD *)pData)[5]) == _FALSE)
+1085   1          {
+1086   2              ((WORD *)pData)[5] = g_usCaptureStart + stModeInfo.IHWidth + _CAPTURE_HDELAY;
+1087   2          }
+1088   1          else if(((WORD *)pData)[5] > g_usAdcClockLimit)
+1089   1          {
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 19  
+
+1090   2              // Capture Start + Capture Window < Clock
+1091   2              if(CAutoCheckClock(g_usAdcClockLimit) == _TRUE)
+1092   2              {
+1093   3                  ((WORD *)pData)[5] = g_usAdcClockLimit;
+1094   3              }
+1095   2          }
+1096   1      
+1097   1          return ((WORD *)pData)[5];
+1098   1      }
+1099          
+1100          //--------------------------------------------------
+1101          // Description  :
+1102          // Input Value  :
+1103          // Output Value :
+1104          //--------------------------------------------------
+1105          WORD COsdFxGetHPositionRange(BYTE ucPar)
+1106          {
+1107   1          if(ucPar == _GET_HPOSITIONRANGE_MAX)
+1108   1          {
+1109   2              return (stModeUserCenterData.CenterHPos + _HPOSITION_BIAS);
+1110   2          }
+1111   1          else if(ucPar == _GET_HPOSITIONRANGE_MIN)
+1112   1          {
+1113   2              return (stModeUserCenterData.CenterHPos - _HPOSITION_BIAS);
+1114   2          }
+1115   1      }
+1116          
+1117          //--------------------------------------------------
+1118          // Description  :
+1119          // Input Value  :
+1120          // Output Value :
+1121          //--------------------------------------------------
+1122          WORD COsdFxGetVPositionRange(BYTE ucPar)
+1123          {
+1124   1          if(ucPar == _GET_VPOSITIONRANGE_MAX)
+1125   1          {
+1126   2              return (stModeUserCenterData.CenterVPos + _VPOSITION_BIAS);
+1127   2          }
+1128   1          else if(ucPar == _GET_VPOSITIONRANGE_MIN)
+1129   1          {
+1130   2              return (stModeUserCenterData.CenterVPos - _VPOSITION_BIAS);
+1131   2          }
+1132   1      }
+1133          
+1134          //--------------------------------------------------
+1135          // Description  :
+1136          // Input Value  :
+1137          // Output Value :
+1138          //--------------------------------------------------
+1139          WORD COsdFxDetOverRange(WORD ucValue, WORD ucMax, WORD ucMin, BYTE ucSymbol)
+1140          {
+1141   1          switch(ucSymbol)
+1142   1          {
+1143   2              case _DET_OVERRANGE_MAX:
+1144   2                  if (ucValue >= ucMax)
+1145   2                  {
+1146   3                      return ucMax;
+1147   3                  }
+1148   2                  else
+1149   2                  {
+1150   3                      ucValue++;
+1151   3                        //if (stConBriData.Dicom<8)//sjp20110625
+C51 COMPILER V8.02   REALTEK_OSDFUNC                                                       03/05/2012 13:24:28 PAGE 20  
+
+1152   3                      //      ucValue= ucValue+26;//sjp20110625
+1153   3              
+1154   3                      return ucValue;
+1155   3                  }
+1156   2      
+1157   2              case _DET_OVERRANGE_MIN:
+1158   2                  if (ucValue <= ucMin)
+1159   2                  {
+1160   3                      return ucMin;
+1161   3                  }
+1162   2                  else
+1163   2                  {
+1164   3                      ucValue--;
+1165   3                        //if (stConBriData.Dicom<8)//sjp20110625
+1166   3                      //      ucValue= ucValue-26;//sjp20110625
+1167   3                      return ucValue;
+1168   3                  }
+1169   2          }
+1170   1      }
+1171          
+1172          
+1173          #endif  // End of #if(_OSD_TYPE == _REALTEK_OSD)
+1174          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3860    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----     106
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,1 @@
+"Common\Code\Int.c" OPTIMIZE (9,SPEED) DEFINE (_PROJECT="_RTD2472D_DEMO_BOARD") PRINT(.\Output\Int.lst) OBJECT(.\Output\Int.obj)

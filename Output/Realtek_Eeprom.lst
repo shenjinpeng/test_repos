@@ -1,0 +1,1870 @@
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE REALTEK_EEPROM
+OBJECT MODULE PLACED IN .\Output\Realtek_Eeprom.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE User\Realtek OSD\Code\Realtek_Eeprom.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_R
+                    -TD2472D_DEMO_BOARD) PRINT(.\Output\Realtek_Eeprom.lst) OBJECT(.\Output\Realtek_Eeprom.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : Eeprom.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #define __REALTEK_EEPROM__
+  21          
+  22          #include "Common\Header\Include.h"
+  23          
+  24          #if(_OSD_TYPE == _REALTEK_OSD)
+  25          
+  26          #if(_MEMORY_LOCATION == _EEPROM)
+  27          //--------------------------------------------------
+  28          // Description  : Eeprom check at firmware startup
+  29          // Input Value  : None
+  30          // Output Value : None
+  31          //--------------------------------------------------
+  32          void CEepromStartupCheck(void)
+  33          {
+  34   1          BYTE cnt;
+  35   1      
+  36   1          //This delay is for Eeprom power rising time when the connector plug in (VGA_5V or DVI_5V).
+  37   1          CTimerDelayXms(20);
+  38   1          for(cnt = 0; cnt < 2; cnt++)
+  39   1          {
+  40   2              pData[0] = _VERSION_CODE ^ 0xff;
+  41   2      
+  42   2              CEepromRead(_VERSION_CODE_ADDRESS, 1, pData);
+  43   2      
+  44   2              if(pData[0] == _VERSION_CODE)
+  45   2              {
+  46   3                  break;
+  47   3              }
+  48   2          }
+  49   1      //      pData[0]=0;
+  50   1      
+  51   1          if(pData[0] != _VERSION_CODE)
+  52   1          {
+  53   2      #if _DEBUG_MESSAGE_SUPPORT
+  54   2      CDebugMessage("CEepromLoadDefault", 0);
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 2   
+
+  55   2      #endif
+  56   2              CEepromLoadDefault();
+  57   2              pData[0] = _VERSION_CODE;
+  58   2      
+  59   2              CEepromWrite(_VERSION_CODE_ADDRESS, 1, pData);
+  60   2          }
+  61   1          else
+  62   1          {
+  63   2              CEepromLoadSystemData();
+  64   2      
+  65   2              CEepromLoadOsdUserData();
+  66   2              CEepromLoadOsdReserveData();
+  67   2      
+  68   2              CEepromLoadAdcData();
+  69   2              CEepromLoadOsdUserData();
+  70   2              CEepromLoadBriConData();
+  71   2      #if _DEBUG_MESSAGE_SUPPORT
+  72   2      CDebugMessage("CEepromLoadBriConData", stConBriData.Dicom);
+  73   2      #endif
+  74   2      if(stConBriData.Dicom>10)
+  75   2              {
+  76   3              stConBriData.Dicom=0;//sjp20111207
+  77   3              CEepromSaveBriConData();
+  78   3              }
+  79   2      if(stConBriData.Gamma>4)
+  80   2      {
+  81   3              stConBriData.Gamma =0;//sjp20111207
+  82   3              CEepromSaveBriConData();
+  83   3      }
+  84   2      if((stConBriData.Contrast>0x90)||(stConBriData.Contrast<0x70))
+  85   2      {
+  86   3              stConBriData.Contrast=0x80;//sjp20111207
+  87   3              CEepromSaveBriConData();
+  88   3      }
+  89   2      if((stConBriData.Brightness>0x90)||(stConBriData.Brightness<0x70))
+  90   2      {
+  91   3              stConBriData.Brightness=0x80;//sjp20111207
+  92   3              CEepromSaveBriConData();
+  93   3      }
+  94   2              
+  95   2              CEepromLoadColorTempData();
+  96   2             CEepromLoadLSlumiData();//load LSLUMI VALUE 20110621
+  97   2             CEepromLoadPWMlumiData();//load PWMLUMI VALUE 20110715
+  98   2          }
+  99   1          CEepromLoadDDCData();
+ 100   1      }
+ 101          
+ 102          
+ 103          //--------------------------------------------------
+ 104          // Description  : Load eeprom default
+ 105          // Input Value  : None
+ 106          // Output Value : None
+ 107          //--------------------------------------------------
+ 108          void CEepromLoadDefault(void)
+ 109          {
+ 110   1          StructModeUserFIFODataType stFIFOModeTemp;
+ 111   1      
+ 112   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 113   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 114   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+ 115   1          BYTE ucSourceTemp = 0;
+ 116   1      #endif
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 3   
+
+ 117   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 118   1      
+ 119   1          // V013 System Patch Note (6) Modify 20100507 Start
+ 120   1          // Patch Reason : Make sure stModeUserData and stModeUserCenterData are not changed after the initiali
+             -zation of mode user data and mode center data.
+ 121   1          StructModeUserDataType stModeUserDataTemp;
+ 122   1          StructModeUserCenterDataType stModeUserCenterDataTemp;
+ 123   1      
+ 124   1          stModeUserDataTemp = stModeUserData;
+ 125   1          stModeUserCenterDataTemp = stModeUserCenterData;
+ 126   1          // V013 System Patch Note (6) Modify 20100507 End
+ 127   1      
+ 128   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 129   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 130   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 131   1          /*
+ 132   1          if((GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE) && (stModeInfo.ModeCurr < 16))
+ 133   1          */
+ 134   1      #if(_FIFO_MODE_ONLY == _ON)
+ 135   1          if((GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE) && (stModeInfo.ModeCurr < (_MAX_FIFO_MODE_INDEX + 1)))
+ 136   1      #else
+                  if((GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE) && (stModeInfo.ModeCurr < 16))
+              #endif
+ 139   1          // V013 VGA Patch Note (11) Modify 20100416 End
+ 140   1          {
+ 141   2              CEepromLoadUserFIFOModeData((stModeInfo.ModeCurr / 4), pData);
+ 142   2              stFIFOModeTemp.ModeNum = pData[(stModeInfo.ModeCurr % 4) * 4];
+ 143   2          }
+ 144   1      
+ 145   1          CEepromInitialModeData();
+ 146   1          CEepromInitialUserFIFOModeData();
+ 147   1          CEepromInitialCenterModeData();
+ 148   1      #if _DEBUG_MESSAGE_SUPPORT
+ 149   1              CDebugMessage("CEepromLoadSystemDataDefault", 0);
+ 150   1      #endif
+ 151   1              
+ 152   1          CEepromLoadSystemDataDefault();
+ 153   1      
+ 154   1          CEepromLoadOsdUserDataDefault();
+ 155   1          CEepromLoadOsdReserveDataDefault();
+ 156   1          CEepromLoadAdcDataDefault();
+ 157   1          CEepromLoadBriConDataDefault();
+ 158   1          CEepromLoadColorTempDataDefault();
+ 159   1          CEepromLoadLSlumiDataDefault();//load default LSlumi SJP20110625
+ 160   1          CEepromLoadPWMlumiDataDefault();//load default PWMlumi sjp20110715
+ 161   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 162   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 163   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+ 164   1          ucSourceTemp = GET_INPUTSOURCE_TYPE();
+ 165   1          SET_INPUTSOURCE_TYPE(_SOURCE_YPBPR);
+ 166   1          CEepromLoadModeData(stModeInfo.ModeCurr);
+ 167   1          SET_INPUTSOURCE_TYPE(ucSourceTemp);
+ 168   1      #endif
+ 169   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 170   1      
+ 171   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 172   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 173   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 174   1          /*
+ 175   1          if((GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE) && (stModeInfo.ModeCurr < 16))
+ 176   1          */
+ 177   1      #if(_FIFO_MODE_ONLY == _ON)
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 4   
+
+ 178   1          if((GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE) && (stModeInfo.ModeCurr < (_MAX_FIFO_MODE_INDEX + 1)))
+ 179   1      #else
+                  if((GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE) && (stModeInfo.ModeCurr < 16))
+              #endif
+ 182   1          // V013 VGA Patch Note (11) Modify 20100416 End
+ 183   1          {
+ 184   2              // V013 VGA Patch Note (11) Modify 20100416 Start
+ 185   2              // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 186   2              // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 187   2              /*
+ 188   2              if(stSystemData.UserFIFOMode >= 15)
+ 189   2              */
+ 190   2      #if(_FIFO_MODE_ONLY == _ON)
+ 191   2              if(stSystemData.UserFIFOMode >= _MAX_FIFO_MODE_INDEX)
+ 192   2      #else
+                      if(stSystemData.UserFIFOMode >= 15)
+              #endif
+ 195   2              // V013 VGA Patch Note (11) Modify 20100416 End
+ 196   2              {
+ 197   3                  stSystemData.UserFIFOMode = 0;
+ 198   3              }
+ 199   2              else
+ 200   2              {
+ 201   3                  stSystemData.UserFIFOMode++;
+ 202   3              }
+ 203   2      
+ 204   2              // V013 System Patch Note (7) Modify 20100507 Start
+ 205   2              // Patch Reason : Correct saving FIFO Data, right after data initialization.
+ 206   2              /*
+ 207   2              stFIFOModeTemp.IHFreq = stModeInfo.IHFreq;
+ 208   2              stFIFOModeTemp.IVFreq = stModeInfo.IVFreq;
+ 209   2              CEepromSaveUserFIFOModeData(stFIFOModeTemp);
+ 210   2      
+ 211   2              stModeUserData.HPosition = tINPUTMODE_PRESET_TABLE[stFIFOModeTemp.ModeNum].IHStartPos;
+ 212   2              stModeUserData.VPosition = tINPUTMODE_PRESET_TABLE[stFIFOModeTemp.ModeNum].IVStartPos;
+ 213   2              stModeUserData.Clock = tINPUTMODE_PRESET_TABLE[stFIFOModeTemp.ModeNum].IHTotal;
+ 214   2              stModeUserData.Phase = 0;
+ 215   2              CEepromSaveModeData(stSystemData.UserFIFOMode);
+ 216   2      
+ 217   2              stModeInfo.ModeCurr = stSystemData.UserFIFOMode;
+ 218   2              */
+ 219   2              if(stFIFOModeTemp.ModeNum < _MAX_PRESET_MODE)
+ 220   2              {
+ 221   3                  stFIFOModeTemp.IHFreq = stModeInfo.IHFreq;
+ 222   3                  stFIFOModeTemp.IVFreq = stModeInfo.IVFreq;
+ 223   3                  CEepromSaveUserFIFOModeData(stFIFOModeTemp);
+ 224   3      
+ 225   3                  CLR_AUTO_FLAG();
+ 226   3                  CLR_AUTO_FAIL_COUNT();
+ 227   3      
+ 228   3      // V014 VGA Patch Note (6) Modify 20100527 Start
+ 229   3      // Patch Reason : Modify Video Mode Can't Light On
+ 230   3      #if(_COLOR_FORMAT_CONVERT == _ON)
+ 231   3                  CLR_MODE_COLOR_FORMAT_FLAG();
+ 232   3      #endif
+ 233   3      // V014 VGA Patch Note (6) Modify 20100527 End
+ 234   3      
+ 235   3                  stModeUserData.HPosition = tINPUTMODE_PRESET_TABLE[stFIFOModeTemp.ModeNum].IHStartPos;
+ 236   3                  stModeUserData.VPosition = tINPUTMODE_PRESET_TABLE[stFIFOModeTemp.ModeNum].IVStartPos;
+ 237   3                  stModeUserData.Clock = tINPUTMODE_PRESET_TABLE[stFIFOModeTemp.ModeNum].IHTotal;
+ 238   3                  stModeUserData.Phase = 0;
+ 239   3                  CEepromSaveModeData(stSystemData.UserFIFOMode);
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 5   
+
+ 240   3                  stModeInfo.ModeCurr = stSystemData.UserFIFOMode;
+ 241   3              }
+ 242   2              // V013 System Patch Note (7) Modify 20100507 End
+ 243   2          }
+ 244   1          else if((GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE) && (stModeInfo.ModeCurr < _MAX_PRESET_MODE))
+ 245   1          {
+ 246   2              // V013 System Patch Note (6) Modify 20100507 Start
+ 247   2              // Patch Reason : Make sure stModeUserData and stModeUserCenterData are not changed after the init
+             -ialization of mode user data and mode center data.
+ 248   2              /*
+ 249   2              CEepromLoadModeData(stModeInfo.ModeCurr);
+ 250   2              */
+ 251   2              stModeUserData = stModeUserDataTemp;
+ 252   2              stModeUserCenterData = stModeUserCenterDataTemp;
+ 253   2      
+ 254   2              // V013 System Patch Note (7) Modify 20100507 Start
+ 255   2              // Patch Reason : Save FIFO Data, if _FIFO_MODE_ONLY is ON, right after data initialization.
+ 256   2              /*
+ 257   2              CEepromLoadModeData(stModeInfo.ModeCurr);
+ 258   2              */
+ 259   2      #if(_FIFO_MODE_ONLY == _ON)
+ 260   2              if(stSystemData.UserFIFOMode >= _MAX_FIFO_MODE_INDEX)
+ 261   2              {
+ 262   3                  stSystemData.UserFIFOMode = 0;
+ 263   3              }
+ 264   2              else
+ 265   2              {
+ 266   3                  stSystemData.UserFIFOMode++;
+ 267   3              }
+ 268   2      
+ 269   2              g_ucFIFOModeNum = stSystemData.UserFIFOMode;
+ 270   2      
+ 271   2              if(stModeInfo.ModeCurr < _MAX_PRESET_MODE)
+ 272   2              {
+ 273   3                  CLR_AUTO_FLAG();
+ 274   3                  CLR_AUTO_FAIL_COUNT();
+ 275   3      
+ 276   3      // V014 VGA Patch Note (6) Modify 20100527 Start
+ 277   3      // Patch Reason : Modify Video Mode Can't Light On
+ 278   3      #if(_COLOR_FORMAT_CONVERT == _ON)
+ 279   3                  CLR_MODE_COLOR_FORMAT_FLAG();
+ 280   3      #endif
+ 281   3      // V014 VGA Patch Note (6) Modify 20100527 End
+ 282   3      
+ 283   3                  stModeUserData.HPosition = tINPUTMODE_PRESET_TABLE[stModeInfo.ModeCurr].IHStartPos;
+ 284   3                  stModeUserData.VPosition = tINPUTMODE_PRESET_TABLE[stModeInfo.ModeCurr].IVStartPos;
+ 285   3                  stModeUserData.Clock = tINPUTMODE_PRESET_TABLE[stModeInfo.ModeCurr].IHTotal;
+ 286   3                  stModeUserData.Phase = 0;
+ 287   3      
+ 288   3                  stFIFOModeTemp.ModeNum = stModeInfo.ModeCurr;
+ 289   3                  stFIFOModeTemp.IHFreq = stModeInfo.IHFreq;
+ 290   3                  stFIFOModeTemp.IVFreq = stModeInfo.IVFreq;
+ 291   3      
+ 292   3                  CEepromSaveUserFIFOModeData(stFIFOModeTemp);
+ 293   3                  CEepromSaveModeData(stModeInfo.ModeCurr);
+ 294   3              }
+ 295   2      #else
+                      CEepromLoadModeData(stModeInfo.ModeCurr);
+              #endif
+ 298   2              // V013 System Patch Note (7) Modify 20100507 End
+ 299   2      
+ 300   2              // V013 System Patch Note (6) Modify 20100507 End
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 6   
+
+ 301   2          }
+ 302   1      
+ 303   1      #if(_SOURCE_SEARCH_TYPE_BY_OSD == _ON)
+ 304   1          SET_SOURCE_SEARCH_AUTO();
+ 305   1      #endif
+ 306   1      }
+ 307          
+ 308          //--------------------------------------------------
+ 309          // Description  : Eeprom write function
+ 310          // Input Value  : usAddr        --> absolute address
+ 311          //                usLength      --> Numbers of data we want to write
+ 312          //                pWriteArray   --> Writing data array
+ 313          // Output Value : Return _SUCCESS if succeed
+ 314          //--------------------------------------------------
+ 315          bit CEepromWrite(WORD usAddr, WORD usLength, BYTE *pWriteArray)
+ 316          {
+ 317   1          bit bRet = _FALSE;
+ 318   1      
+ 319   1      #if((_PCB_TYPE == _RTD2472D_DEMO_PCB) || (_PCB_TYPE == _RTD2472RD_DEMO_PCB) || (_PCB_TYPE == _RTD2545LR_QA
+             -_PCB) || (_PCB_TYPE == _RTD2472RD_DEMO_PCB) || (_PCB_TYPE == _RTD2472RD_QA_PCB)) //||(_PCB_TYPE == _RTD2472D_QA_PCB)||(_
+             -PCB_TYPE == _RTD2472RD_QA_PCB))
+ 320   1          bEEPROM_WRITE_PROTECT = _LOW;
+ 321   1      #endif
+ 322   1      
+ 323   1          bRet = CI2cWrite(NVRAM_LINE,_EEPROM_ADDRESS + (BYTE)((usAddr & 0xff00) >> 7), (BYTE)(usAddr & 0x00ff),
+             - usLength, pWriteArray);
+ 324   1      
+ 325   1          if(bRet == _SUCCESS)
+ 326   1          {
+ 327   2              bRet = CI2cWritePolling(NVRAM_LINE,_EEPROM_ADDRESS + (BYTE)((usAddr & 0xff00) >> 7));
+ 328   2          }
+ 329   1      
+ 330   1      #if((_PCB_TYPE == _RTD2472D_DEMO_PCB) || (_PCB_TYPE == _RTD2472RD_DEMO_PCB) || (_PCB_TYPE == _RTD2545LR_QA
+             -_PCB) || (_PCB_TYPE == _RTD2472RD_DEMO_PCB) || (_PCB_TYPE == _RTD2472RD_QA_PCB)) //||(_PCB_TYPE == _RTD2472D_QA_PCB)||(_
+             -PCB_TYPE == _RTD2472RD_QA_PCB))
+ 331   1          bEEPROM_WRITE_PROTECT = _HIGH;
+ 332   1      #endif
+ 333   1      
+ 334   1          return bRet;
+ 335   1      }
+ 336          
+ 337          //--------------------------------------------------
+ 338          // Description  : Eeprom read function
+ 339          // Input Value  : usAddr        --> absolute address
+ 340          //                usLength      --> Numbers of data we want to read
+ 341          //                pReadArray    --> Result array
+ 342          // Output Value : Return _SUCCESS if succeed
+ 343          //--------------------------------------------------
+ 344          bit CEepromRead(WORD usAddr, WORD usLength, BYTE *pReadArray)
+ 345          {
+ 346   1          return CI2cRead(NVRAM_LINE,_EEPROM_ADDRESS + (BYTE)((usAddr & 0xff00) >> 7), (BYTE)(usAddr & 0x00ff), 
+             -usLength, pReadArray);
+ 347   1      }
+ 348          
+ 349          //----------------------------------------------------------------------------------------------------
+ 350          
+ 351          // V012 Modify 20100309 Start
+ 352          // V012 Patch Note (10) : Adjust EEPROM mode data structure to save space.
+ 353          /*
+ 354          //--------------------------------------------------
+ 355          // Description  : Save mode setting data, such as FirstAuto,
+ 356          //                HPosition, VPosition, Clock and Phase.
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 7   
+
+ 357          // Input Value  : None
+ 358          // Output Value : None
+ 359          //--------------------------------------------------
+ 360          void CEepromSaveModeData(BYTE ucMode)
+ 361          {
+ 362              if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 363              {
+ 364                  CEepromWrite(_MODE_DATA_0_ADDRESS + (WORD)ucMode * 8, sizeof(StructModeUserDataType), &stModeUserD
+             -ata.FirstAuto);
+ 365              }
+ 366              else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 367              {
+ 368                  CEepromWrite(_USER_FIFO_MODE_DATA_1_ADDRESS + (WORD)ucMode * 8, sizeof(StructModeUserDataType), &s
+             -tModeUserData.FirstAuto);
+ 369              }
+ 370          }
+ 371          */
+ 372          
+ 373          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 374          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 375          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 376          /*
+ 377          void CEepromSaveModeData(BYTE ucMode)
+ 378          {
+ 379              pData[0] = (stModeUserData.FirstAuto & 0xE0) | ((stModeUserData.FirstAuto & 0x01) << 4) | (BYTE)((stMo
+             -deUserData.Clock >> 8) & 0x0F);
+ 380              pData[1] = (BYTE)((stModeUserData.HPosition >> 4) & 0xF0) | (BYTE)((stModeUserData.VPosition >> 8) & 0
+             -x0F);
+ 381              pData[2] = (BYTE)(stModeUserData.HPosition);
+ 382              pData[3] = (BYTE)(stModeUserData.VPosition);
+ 383              pData[4] = (BYTE)(stModeUserData.Clock);
+ 384              pData[5] = (BYTE)(stModeUserData.Phase);
+ 385          
+ 386              if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 387              {
+ 388                  CEepromWrite(_MODE_DATA_0_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DATA_SIZE, pDa
+             -ta);
+ 389              }
+ 390              else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 391              {
+ 392                  CEepromWrite(_USER_FIFO_MODE_DATA_1_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DATA
+             -_SIZE, pData);
+ 393              }
+ 394          }
+ 395          */
+ 396          //--------------------------------------------------
+ 397          // Description  : Save mode setting data, such as FirstAuto,
+ 398          //                HPosition, VPosition, Clock and Phase.
+ 399          // Input Value  : None
+ 400          // Output Value : None
+ 401          //--------------------------------------------------
+ 402          void CEepromSaveModeData(BYTE ucMode)
+ 403          {
+ 404   1      #if(_FIFO_MODE_ONLY == _ON)
+ 405   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 406   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 407   1          /*
+ 408   1          // Just for the warning from the compiler.
+ 409   1          ucMode = g_ucFIFOModeNum;
+ 410   1      
+ 411   1          CEepromWrite(_MODE_DATA_0_ADDRESS + (WORD)g_ucFIFOModeNum * sizeof(StructModeUserDataType), sizeof(Str
+             -uctModeUserDataType), &stModeUserData.FirstAuto);
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 8   
+
+ 412   1          */
+ 413   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+ 414   1          if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+ 415   1          {
+ 416   2              CEepromWrite(_MODE_DATA_YPBPR_ADDRESS + (WORD)ucMode * sizeof(StructModeUserDataType), sizeof(Stru
+             -ctModeUserDataType), &stModeUserData.FirstAuto);
+ 417   2          }
+ 418   1          else
+ 419   1      #endif
+ 420   1          {
+ 421   2      #if((_FIFO_MODE_ONLY == _OFF) || (_YUV_AUTO_CONFIG_SUPPORT == _OFF))
+                      // Just for the warning from the compiler.
+                      ucMode = g_ucFIFOModeNum;
+              #endif
+ 425   2      
+ 426   2              CEepromWrite(_MODE_DATA_0_ADDRESS + (WORD)g_ucFIFOModeNum * sizeof(StructModeUserDataType), sizeof
+             -(StructModeUserDataType), &stModeUserData.FirstAuto);
+ 427   2          }
+ 428   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 429   1      #else
+                  pData[0] = (stModeUserData.FirstAuto & 0xE0) | ((stModeUserData.FirstAuto & 0x01) << 4) | (BYTE)((stMo
+             -deUserData.Clock >> 8) & 0x0F);
+                  pData[1] = (BYTE)((stModeUserData.HPosition >> 4) & 0xF0) | (BYTE)((stModeUserData.VPosition >> 8) & 0
+             -x0F);
+                  pData[2] = (BYTE)(stModeUserData.HPosition);
+                  pData[3] = (BYTE)(stModeUserData.VPosition);
+                  pData[4] = (BYTE)(stModeUserData.Clock);
+                  pData[5] = (BYTE)(stModeUserData.Phase);
+              
+                  if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+                  {
+                      CEepromWrite(_MODE_DATA_0_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DATA_SIZE, pDa
+             -ta);
+                  }
+                  else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+                  {
+                      CEepromWrite(_USER_FIFO_MODE_DATA_1_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DATA
+             -_SIZE, pData);
+                  }
+              #endif
+ 446   1      }
+ 447          // V013 VGA Patch Note (11) Modify 20100416 End
+ 448          
+ 449          // V012 Modify 20100309 End
+ 450          
+ 451          // V012 Modify 20100309 Start
+ 452          // V012 Patch Note (10) : Adjust EEPROM mode data structure to save space.
+ 453          /*
+ 454          //--------------------------------------------------
+ 455          // Description  : Load mode setting data, such as FirstAuto,
+ 456          //                HPosition, VPosition, Clock and Phase.
+ 457          // Input Value  : None
+ 458          // Output Value : None
+ 459          //--------------------------------------------------
+ 460          void CEepromLoadModeData(BYTE ucMode)
+ 461          {
+ 462              if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 463              {
+ 464                  if(CEepromRead(_MODE_DATA_0_ADDRESS + (WORD)ucMode * 8, sizeof(StructModeUserDataType), &stModeUse
+             -rData.FirstAuto) == _FAIL)
+ 465                  {
+ 466                      CLR_AUTO_FLAG();
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 9   
+
+ 467                      CLR_AUTO_FAIL_COUNT();
+ 468          
+ 469                      stModeUserData.HPosition    = stModeInfo.IHStartPos;
+ 470                      stModeUserData.VPosition    = stModeInfo.IVStartPos;
+ 471                      stModeUserData.Clock        = stModeInfo.IHTotal;
+ 472                      stModeUserData.Phase        = 0;
+ 473                  }
+ 474              }
+ 475              else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 476              {
+ 477                  if(CEepromRead(_USER_FIFO_MODE_DATA_1_ADDRESS + (WORD)ucMode * 8, sizeof(StructModeUserDataType), 
+             -&stModeUserData.FirstAuto) == _FAIL)
+ 478                  {
+ 479                      CLR_AUTO_FLAG();
+ 480                      CLR_AUTO_FAIL_COUNT();
+ 481          
+ 482                      stModeUserData.HPosition    = stModeInfo.IHStartPos;
+ 483                      stModeUserData.VPosition    = stModeInfo.IVStartPos;
+ 484                      stModeUserData.Clock        = stModeInfo.IHTotal;
+ 485                      stModeUserData.Phase        = 0;
+ 486                  }
+ 487              }
+ 488          }
+ 489          */
+ 490          //--------------------------------------------------
+ 491          // Description  : Load mode setting data, such as FirstAuto,
+ 492          //                HPosition, VPosition, Clock and Phase.
+ 493          // Input Value  : None
+ 494          // Output Value : None
+ 495          //--------------------------------------------------
+ 496          void CEepromLoadModeData(BYTE ucMode)
+ 497          {
+ 498   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 499   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 500   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 501   1          /*
+ 502   1          if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 503   1          {
+ 504   1              if(CEepromRead(_MODE_DATA_0_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DATA_SIZE, p
+             -Data) == _FAIL)
+ 505   1              {
+ 506   1                  CLR_AUTO_FLAG();
+ 507   1                  CLR_AUTO_FAIL_COUNT();
+ 508   1      
+ 509   1                  stModeUserData.HPosition = stModeInfo.IHStartPos;
+ 510   1                  stModeUserData.VPosition = stModeInfo.IVStartPos;
+ 511   1                  stModeUserData.Clock = stModeInfo.IHTotal;
+ 512   1                  stModeUserData.Phase = 0;
+ 513   1              }
+ 514   1              else
+ 515   1              {
+ 516   1                  stModeUserData.FirstAuto = (pData[0] & 0xE0) | ((pData[0] & 0x10) >> 4);
+ 517   1                  stModeUserData.HPosition = (((WORD)(pData[1]) << 4) & 0x0F00) | pData[2];
+ 518   1                  stModeUserData.VPosition = (((WORD)(pData[1]) << 8) & 0x0F00) | pData[3];
+ 519   1                  stModeUserData.Clock = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[4];
+ 520   1                  stModeUserData.Phase = pData[5];
+ 521   1              }
+ 522   1          }
+ 523   1          else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 524   1          {
+ 525   1              if(CEepromRead(_USER_FIFO_MODE_DATA_1_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DA
+             -TA_SIZE, pData) == _FAIL)
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 10  
+
+ 526   1              {
+ 527   1                  CLR_AUTO_FLAG();
+ 528   1                  CLR_AUTO_FAIL_COUNT();
+ 529   1      
+ 530   1                  stModeUserData.HPosition = stModeInfo.IHStartPos;
+ 531   1                  stModeUserData.VPosition = stModeInfo.IVStartPos;
+ 532   1                  stModeUserData.Clock = stModeInfo.IHTotal;
+ 533   1                  stModeUserData.Phase = 0;
+ 534   1              }
+ 535   1              else
+ 536   1              {
+ 537   1                  stModeUserData.FirstAuto = (pData[0] & 0xE0) | ((pData[0] & 0x10) >> 4);
+ 538   1                  stModeUserData.HPosition = (((WORD)(pData[1]) << 4) & 0x0F00) | pData[2];
+ 539   1                  stModeUserData.VPosition = (((WORD)(pData[1]) << 8) & 0x0F00) | pData[3];
+ 540   1                  stModeUserData.Clock = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[4];
+ 541   1                  stModeUserData.Phase = pData[5];
+ 542   1              }
+ 543   1          }
+ 544   1          */
+ 545   1      #if(_FIFO_MODE_ONLY == _ON)
+ 546   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 547   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 548   1          /*
+ 549   1          // Just for the warning from the compiler.
+ 550   1          ucMode = g_ucFIFOModeNum;
+ 551   1      
+ 552   1          if(CEepromRead(_MODE_DATA_0_ADDRESS + (WORD)g_ucFIFOModeNum * sizeof(StructModeUserDataType), sizeof(S
+             -tructModeUserDataType), &stModeUserData.FirstAuto) == _FAIL)
+ 553   1          {
+ 554   1              CLR_AUTO_FLAG();
+ 555   1              CLR_AUTO_FAIL_COUNT();
+ 556   1      
+ 557   1              stModeUserData.HPosition = stModeInfo.IHStartPos;
+ 558   1              stModeUserData.VPosition = stModeInfo.IVStartPos;
+ 559   1              stModeUserData.Clock = stModeInfo.IHTotal;
+ 560   1              stModeUserData.Phase = 0;
+ 561   1          }
+ 562   1          */
+ 563   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+ 564   1          if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+ 565   1          {
+ 566   2              if(CEepromRead(_MODE_DATA_YPBPR_ADDRESS + (WORD)ucMode * sizeof(StructModeUserDataType), sizeof(St
+             -ructModeUserDataType), &stModeUserData.FirstAuto) == _FAIL)
+ 567   2              {
+ 568   3                  CLR_AUTO_FLAG();
+ 569   3                  CLR_AUTO_FAIL_COUNT();
+ 570   3      
+ 571   3      // V014 VGA Patch Note (6) Modify 20100527 Start
+ 572   3      // Patch Reason : Modify Video Mode Can't Light On
+ 573   3      #if(_COLOR_FORMAT_CONVERT == _ON)
+ 574   3                  SET_MODE_COLOR_FORMAT_FLAG(_YUV_COLOR_FORMAT);
+ 575   3      #endif
+ 576   3      // V014 VGA Patch Note (6) Modify 20100527 End
+ 577   3      
+ 578   3                  stModeUserData.HPosition = stModeInfo.IHStartPos;
+ 579   3                  stModeUserData.VPosition = stModeInfo.IVStartPos;
+ 580   3                  stModeUserData.Clock = stModeInfo.IHTotal;
+ 581   3                  stModeUserData.Phase = 0;
+ 582   3              }
+ 583   2          }
+ 584   1          else
+ 585   1      #endif
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 11  
+
+ 586   1          {
+ 587   2      #if((_FIFO_MODE_ONLY == _OFF) || (_YUV_AUTO_CONFIG_SUPPORT == _OFF))
+                      // Just for the warning from the compiler.
+                      ucMode = g_ucFIFOModeNum;
+              #endif
+ 591   2      
+ 592   2              if(CEepromRead(_MODE_DATA_0_ADDRESS + (WORD)g_ucFIFOModeNum * sizeof(StructModeUserDataType), size
+             -of(StructModeUserDataType), &stModeUserData.FirstAuto) == _FAIL)
+ 593   2              {
+ 594   3                  CLR_AUTO_FLAG();
+ 595   3                  CLR_AUTO_FAIL_COUNT();
+ 596   3      
+ 597   3      // V014 VGA Patch Note (6) Modify 20100527 Start
+ 598   3      // Patch Reason : Modify Video Mode Can't Light On
+ 599   3      #if(_COLOR_FORMAT_CONVERT == _ON)
+ 600   3                  CLR_MODE_COLOR_FORMAT_FLAG();
+ 601   3      #endif
+ 602   3      // V014 VGA Patch Note (6) Modify 20100527 End
+ 603   3      
+ 604   3                  stModeUserData.HPosition = stModeInfo.IHStartPos;
+ 605   3                  stModeUserData.VPosition = stModeInfo.IVStartPos;
+ 606   3                  stModeUserData.Clock = stModeInfo.IHTotal;
+ 607   3                  stModeUserData.Phase = 0;
+ 608   3              }
+ 609   2          }
+ 610   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 611   1      #else
+                  if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+                  {
+                      if(CEepromRead(_MODE_DATA_0_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DATA_SIZE, p
+             -Data) == _FAIL)
+                      {
+                          CLR_AUTO_FLAG();
+                          CLR_AUTO_FAIL_COUNT();
+              
+              // V014 VGA Patch Note (6) Modify 20100527 Start
+              // Patch Reason : Modify Video Mode Can't Light On
+              #if(_COLOR_FORMAT_CONVERT == _ON)
+                          CLR_MODE_COLOR_FORMAT_FLAG();
+              #endif
+              // V014 VGA Patch Note (6) Modify 20100527 End
+              
+                          stModeUserData.HPosition = stModeInfo.IHStartPos;
+                          stModeUserData.VPosition = stModeInfo.IVStartPos;
+                          stModeUserData.Clock = stModeInfo.IHTotal;
+                          stModeUserData.Phase = 0;
+                      }
+                      else
+                      {
+                          stModeUserData.FirstAuto = (pData[0] & 0xE0) | ((pData[0] & 0x10) >> 4);
+                          stModeUserData.HPosition = (((WORD)(pData[1]) << 4) & 0x0F00) | pData[2];
+                          stModeUserData.VPosition = (((WORD)(pData[1]) << 8) & 0x0F00) | pData[3];
+                          stModeUserData.Clock = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[4];
+                          stModeUserData.Phase = pData[5];
+                      }
+                  }
+                  else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+                  {
+                      if(CEepromRead(_USER_FIFO_MODE_DATA_1_ADDRESS + (WORD)ucMode * _MODE_USER_DATA_SIZE, _MODE_USER_DA
+             -TA_SIZE, pData) == _FAIL)
+                      {
+                          CLR_AUTO_FLAG();
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 12  
+
+                          CLR_AUTO_FAIL_COUNT();
+              
+              // V014 VGA Patch Note (6) Modify 20100527 Start
+              // Patch Reason : Modify Video Mode Can't Light On
+              #if(_COLOR_FORMAT_CONVERT == _ON)
+                          CLR_MODE_COLOR_FORMAT_FLAG();
+              #endif
+              // V014 VGA Patch Note (6) Modify 20100527 End
+              
+                          stModeUserData.HPosition = stModeInfo.IHStartPos;
+                          stModeUserData.VPosition = stModeInfo.IVStartPos;
+                          stModeUserData.Clock = stModeInfo.IHTotal;
+                          stModeUserData.Phase = 0;
+                      }
+                      else
+                      {
+                          stModeUserData.FirstAuto = (pData[0] & 0xE0) | ((pData[0] & 0x10) >> 4);
+                          stModeUserData.HPosition = (((WORD)(pData[1]) << 4) & 0x0F00) | pData[2];
+                          stModeUserData.VPosition = (((WORD)(pData[1]) << 8) & 0x0F00) | pData[3];
+                          stModeUserData.Clock = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[4];
+                          stModeUserData.Phase = pData[5];
+                      }
+                  }
+              #endif
+ 669   1          // V013 VGA Patch Note (11) Modify 20100416 End
+ 670   1      }
+ 671          // V012 Modify 20100309 End
+ 672          
+ 673          //--------------------------------------------------
+ 674          // Description  : Initial mode setting data with defaults
+ 675          // Input Value  : None
+ 676          // Output Value : None
+ 677          //--------------------------------------------------
+ 678          void CEepromInitialModeData(void)
+ 679          {
+ 680   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 681   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 682   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 683   1          /*
+ 684   1          BYTE modecnt, modetype;
+ 685   1      
+ 686   1          modetype = GET_MODE_SEARCH_TYPE();
+ 687   1          SET_MODE_SEARCH_TYPE(_PRESET_MODE_TYPE);
+ 688   1      
+ 689   1          for(modecnt = 0; modecnt < _MAX_PRESET_MODE; modecnt++)
+ 690   1          {
+ 691   1              CLR_AUTO_FLAG();
+ 692   1              CLR_AUTO_FAIL_COUNT();
+ 693   1      
+ 694   1              stModeUserData.HPosition = tINPUTMODE_PRESET_TABLE[modecnt].IHStartPos;
+ 695   1              stModeUserData.VPosition = tINPUTMODE_PRESET_TABLE[modecnt].IVStartPos;
+ 696   1              stModeUserData.Clock = tINPUTMODE_PRESET_TABLE[modecnt].IHTotal;
+ 697   1              stModeUserData.Phase = 0;
+ 698   1      
+ 699   1              CEepromSaveModeData(modecnt);
+ 700   1          }
+ 701   1      
+ 702   1          // V012 Modify 20100309 Start
+ 703   1          // V012 Patch Note (10) : Adjust EEPROM mode data structure to save space.
+ 704   1          /*
+ 705   1          for(modecnt=0; modecnt<8; modecnt++)
+ 706   1          {
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 13  
+
+ 707   1              CEepromWrite(_USER_FIFO_MODE_DATA_1_ADDRESS + (modecnt * 16), 16, tEEPROM_USER_FIFO_MODE_DEFAULT);
+ 708   1          }
+ 709   1          * /
+ 710   1          for(modecnt = 0; modecnt < _MODE_USER_DATA_SIZE; modecnt++)
+ 711   1          {
+ 712   1              CEepromWrite(_USER_FIFO_MODE_DATA_1_ADDRESS + (modecnt * sizeof(tEEPROM_USER_FIFO_MODE_DEFAULT)), 
+             -sizeof(tEEPROM_USER_FIFO_MODE_DEFAULT), tEEPROM_USER_FIFO_MODE_DEFAULT);
+ 713   1          }
+ 714   1          // V012 Modify 20100309 End
+ 715   1      
+ 716   1          SET_MODE_SEARCH_TYPE(modetype);
+ 717   1          */
+ 718   1      #if(_FIFO_MODE_ONLY == _ON)
+ 719   1          BYTE ucModeCnt = 0;
+ 720   1      
+ 721   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 722   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 723   1          BYTE ucModeType = 0;
+ 724   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 725   1      
+ 726   1          for(ucModeCnt = 0; ucModeCnt <= _MAX_FIFO_MODE_INDEX; ucModeCnt++)
+ 727   1          {
+ 728   2              g_ucFIFOModeNum = ucModeCnt;
+ 729   2              stModeUserData.FirstAuto = 0xFF;
+ 730   2              stModeUserData.HPosition = 0xFFFF;
+ 731   2              stModeUserData.VPosition = 0xFFFF;
+ 732   2              stModeUserData.Clock = 0xFFFF;
+ 733   2              stModeUserData.Phase = 0xFF;
+ 734   2      
+ 735   2              CEepromSaveModeData(ucModeCnt);
+ 736   2          }
+ 737   1      
+ 738   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 739   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 740   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+ 741   1          ucModeType = GET_INPUTSOURCE_TYPE();
+ 742   1          SET_INPUTSOURCE_TYPE(_SOURCE_YPBPR);
+ 743   1      
+ 744   1          for(ucModeCnt = 0; ucModeCnt < _MAX_YPBPR_MODE; ucModeCnt++)
+ 745   1          {
+ 746   2              CLR_AUTO_FLAG();
+ 747   2              CLR_AUTO_FAIL_COUNT();
+ 748   2      
+ 749   2      // V014 VGA Patch Note (6) Modify 20100527 Start
+ 750   2      // Patch Reason : Modify Video Mode Can't Light On
+ 751   2      #if(_COLOR_FORMAT_CONVERT == _ON)
+ 752   2              SET_MODE_COLOR_FORMAT_FLAG(_YUV_COLOR_FORMAT);
+ 753   2      #endif
+ 754   2      // V014 VGA Patch Note (6) Modify 20100527 End
+ 755   2      
+ 756   2              stModeUserData.HPosition = tYPBPR_MODE_TABLE[ucModeCnt].IHStartPos;
+ 757   2              stModeUserData.VPosition = tYPBPR_MODE_TABLE[ucModeCnt].IVStartPos;
+ 758   2              stModeUserData.Clock = tYPBPR_MODE_TABLE[ucModeCnt].IHTotal;
+ 759   2              stModeUserData.Phase = 0;
+ 760   2      
+ 761   2              CEepromSaveModeData(ucModeCnt);
+ 762   2          }
+ 763   1      
+ 764   1          SET_INPUTSOURCE_TYPE(ucModeType);
+ 765   1      #endif
+ 766   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 767   1      #else
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 14  
+
+                  BYTE ucModeCnt = 0;
+                  BYTE ucModeType = 0;
+              
+                  ucModeType = GET_MODE_SEARCH_TYPE();
+                  SET_MODE_SEARCH_TYPE(_PRESET_MODE_TYPE);
+              
+                  for(ucModeCnt = 0; ucModeCnt < _MAX_PRESET_MODE; ucModeCnt++)
+                  {
+                      CLR_AUTO_FLAG();
+                      CLR_AUTO_FAIL_COUNT();
+              
+              // V014 VGA Patch Note (6) Modify 20100527 Start
+              // Patch Reason : Modify Video Mode Can't Light On
+              #if(_COLOR_FORMAT_CONVERT == _ON)
+                      CLR_MODE_COLOR_FORMAT_FLAG();
+              #endif
+              // V014 VGA Patch Note (6) Modify 20100527 End
+              
+                      stModeUserData.HPosition = tINPUTMODE_PRESET_TABLE[ucModeCnt].IHStartPos;
+                      stModeUserData.VPosition = tINPUTMODE_PRESET_TABLE[ucModeCnt].IVStartPos;
+                      stModeUserData.Clock = tINPUTMODE_PRESET_TABLE[ucModeCnt].IHTotal;
+                      stModeUserData.Phase = 0;
+              
+                      CEepromSaveModeData(ucModeCnt);
+                  }
+              
+                  for(ucModeCnt = 0; ucModeCnt < 16; ucModeCnt++)
+                  {
+                      CEepromWrite(_USER_FIFO_MODE_DATA_1_ADDRESS + (ucModeCnt * _MODE_USER_DATA_SIZE), _MODE_USER_DATA_
+             -SIZE, tEEPROM_USER_FIFO_MODE_DEFAULT);
+                  }
+              
+                  SET_MODE_SEARCH_TYPE(ucModeType);
+              #endif
+ 801   1          // V013 VGA Patch Note (11) Modify 20100416 End
+ 802   1      }
+ 803          
+ 804          //----------------------------------------------------------------------------------------------------
+ 805          
+ 806          //--------------------------------------------------
+ 807          // Description  : Save user FIFO mode data, such as ModeNum,
+ 808          //                IHFreq, IVFreq.
+ 809          // Input Value  : None
+ 810          // Output Value : None
+ 811          //--------------------------------------------------
+ 812          void CEepromSaveUserFIFOModeData(StructModeUserFIFODataType stUserFIFOMode)
+ 813          {
+ 814   1          stUserFIFOMode.IHFreq = ((stUserFIFOMode.IVFreq & 0x0f00) << 4) | (stUserFIFOMode.IHFreq & 0x0fff);
+ 815   1          stUserFIFOMode.IVFreq = ((stUserFIFOMode.IVFreq & 0x00ff) << 8);
+ 816   1      
+ 817   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 818   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 819   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 820   1      #if(_FIFO_MODE_ONLY == _ON)
+ 821   1          stUserFIFOMode.IHFreq = (stUserFIFOMode.IHFreq & ~_BIT15) | ((WORD)GET_MODE_SEARCH_TYPE() << 15);
+ 822   1      #endif
+ 823   1          // V013 VGA Patch Note (11) Modify 20100416 End
+ 824   1      
+ 825   1          CEepromWrite(_USER_FIFO_MODE_DATA_0_ADDRESS + (stSystemData.UserFIFOMode * 4), 4, &stUserFIFOMode.Mode
+             -Num);
+ 826   1      }
+ 827          
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 15  
+
+ 828          //--------------------------------------------------
+ 829          // Description  : Load 4 sets of user FIFO mode data.
+ 830          // Input Value  : None
+ 831          // Output Value : None
+ 832          //--------------------------------------------------
+ 833          void CEepromLoadUserFIFOModeData(BYTE ucNum, BYTE *pArray)
+ 834          {
+ 835   1          CEepromRead(_USER_FIFO_MODE_DATA_0_ADDRESS + (ucNum * 16), 16, pArray);
+ 836   1      }
+ 837          
+ 838          //--------------------------------------------------
+ 839          // Description  : Initial user FIFO mode data with defaults
+ 840          // Input Value  : None
+ 841          // Output Value : None
+ 842          //--------------------------------------------------
+ 843          void CEepromInitialUserFIFOModeData(void)
+ 844          {
+ 845   1          BYTE modecnt;
+ 846   1      
+ 847   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 848   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 849   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 850   1          /*
+ 851   1          for(modecnt = 0; modecnt < 4; modecnt++)
+ 852   1          */
+ 853   1      #if(_FIFO_MODE_ONLY == _ON)
+ 854   1          for(modecnt = 0; modecnt < 16; modecnt++)
+ 855   1      #else
+                  for(modecnt = 0; modecnt < 4; modecnt++)
+              #endif
+ 858   1          // V013 VGA Patch Note (11) Modify 20100416 End
+ 859   1          {
+ 860   2              CEepromWrite(_USER_FIFO_MODE_DATA_0_ADDRESS + (modecnt * 16), 16, tEEPROM_USER_FIFO_MODE_DEFAULT);
+ 861   2          }
+ 862   1      }
+ 863          
+ 864          //----------------------------------------------------------------------------------------------------
+ 865          
+ 866          // V012 Modify 20100309 Start
+ 867          // V012 Patch Note (10) : Adjust EEPROM mode data structure to save space.
+ 868          /*
+ 869          //--------------------------------------------------
+ 870          // Description  :
+ 871          // Input Value  :
+ 872          // Output Value : None
+ 873          //--------------------------------------------------
+ 874          void CEepromSaveCenterModeData(BYTE ucMode)
+ 875          {
+ 876              if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 877              {
+ 878                  CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)ucMode * 8, sizeof(StructModeUserCenterDataType), (
+             -BYTE *)&stModeUserCenterData.CenterHPos);
+ 879              }
+ 880              else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 881              {
+ 882                  CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * 8 + (WORD)ucMode * 8, sizeof(Str
+             -uctModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos);
+ 883              }
+ 884          }
+ 885          */
+ 886          //--------------------------------------------------
+ 887          // Description  :
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 16  
+
+ 888          // Input Value  :
+ 889          // Output Value : None
+ 890          //--------------------------------------------------
+ 891          void CEepromSaveCenterModeData(BYTE ucMode)
+ 892          {
+ 893   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+ 894   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+ 895   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+ 896   1          /*
+ 897   1          pData[0] = (BYTE)((stModeUserCenterData.CenterHPos >> 4) & 0xF0) | (BYTE)((stModeUserCenterData.Center
+             -VPos >> 8) & 0x0F);
+ 898   1          pData[1] = (BYTE)(stModeUserCenterData.CenterHPos);
+ 899   1          pData[2] = (BYTE)(stModeUserCenterData.CenterVPos);
+ 900   1          pData[3] = (BYTE)(stModeUserCenterData.CenterClock >> 8);
+ 901   1          pData[4] = (BYTE)(stModeUserCenterData.CenterClock);
+ 902   1          pData[5] = (BYTE)(stModeUserCenterData.CenterPhase);
+ 903   1      
+ 904   1          if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 905   1          {
+ 906   1              CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)ucMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DATA_
+             -SIZE, pData);
+ 907   1          }
+ 908   1          else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 909   1          {
+ 910   1              CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * _MODE_CENTER_DATA_SIZE + (WORD)u
+             -cMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DATA_SIZE, pData);
+ 911   1          }
+ 912   1          */
+ 913   1      #if(_FIFO_MODE_ONLY == _ON)
+ 914   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 915   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 916   1          /*
+ 917   1          // Just for the warning from the compiler.
+ 918   1          ucMode = g_ucFIFOModeNum;
+ 919   1          CEepromWrite(_MODE_CENTER_DATA_ADDRESS + g_ucFIFOModeNum * sizeof(StructModeUserCenterDataType), sizeo
+             -f(StructModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos);
+ 920   1          */
+ 921   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+ 922   1          if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+ 923   1          {
+ 924   2              CEepromWrite(_MODE_CENTER_DATA_YPBPR_ADDRESS + ucMode * sizeof(StructModeUserCenterDataType), size
+             -of(StructModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos);
+ 925   2          }
+ 926   1          else
+ 927   1      #endif
+ 928   1          {
+ 929   2      #if((_FIFO_MODE_ONLY == _OFF) || (_YUV_AUTO_CONFIG_SUPPORT == _OFF))
+                      // Just for the warning from the compiler.
+                      ucMode = g_ucFIFOModeNum;
+              #endif
+ 933   2      
+ 934   2              CEepromWrite(_MODE_CENTER_DATA_ADDRESS + g_ucFIFOModeNum * sizeof(StructModeUserCenterDataType), s
+             -izeof(StructModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos);
+ 935   2          }
+ 936   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 937   1      #else
+                  pData[0] = (BYTE)((stModeUserCenterData.CenterHPos >> 4) & 0xF0) | (BYTE)((stModeUserCenterData.Center
+             -VPos >> 8) & 0x0F);
+                  pData[1] = (BYTE)(stModeUserCenterData.CenterHPos);
+                  pData[2] = (BYTE)(stModeUserCenterData.CenterVPos);
+                  pData[3] = (BYTE)(stModeUserCenterData.CenterClock >> 8);
+                  pData[4] = (BYTE)(stModeUserCenterData.CenterClock);
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 17  
+
+                  pData[5] = (BYTE)(stModeUserCenterData.CenterPhase);
+              
+                  if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+                  {
+                      CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)ucMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DATA_
+             -SIZE, pData);
+                  }
+                  else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+                  {
+                      CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * _MODE_CENTER_DATA_SIZE + (WORD)u
+             -cMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DATA_SIZE, pData);
+                  }
+              #endif
+ 954   1          // V013 VGA Patch Note (11) Modify 20100416 End
+ 955   1      }
+ 956          // V012 Modify 20100309 End
+ 957          
+ 958          // V012 Modify 20100309 Start
+ 959          // V012 Patch Note (10) : Adjust EEPROM mode data structure to save space.
+ 960          /*
+ 961          //--------------------------------------------------
+ 962          // Description  :
+ 963          // Input Value  :
+ 964          // Output Value : None
+ 965          //--------------------------------------------------
+ 966          void CEepromLoadCenterModeData(BYTE ucMode)
+ 967          {
+ 968          
+ 969              if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 970              {
+ 971                  if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + (WORD)ucMode * 8, sizeof(StructModeUserCenterDataType),
+             - (BYTE *)&stModeUserCenterData.CenterHPos) == _FAIL)
+ 972                  {
+ 973                      stModeUserCenterData.CenterHPos     = stModeInfo.IHStartPos;
+ 974                      stModeUserCenterData.CenterVPos     = stModeInfo.IVStartPos;
+ 975                      stModeUserCenterData.CenterClock    = stModeInfo.IHTotal;
+ 976                      stModeUserCenterData.CenterPhase    = 0x00;
+ 977                  }
+ 978              }
+ 979              else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 980              {
+ 981                  if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * 8 + (WORD)ucMode * 8, sizeof(S
+             -tructModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos) == _FAIL)
+ 982                  {
+ 983                      stModeUserCenterData.CenterHPos     = stModeInfo.IHStartPos;
+ 984                      stModeUserCenterData.CenterVPos     = stModeInfo.IVStartPos;
+ 985                      stModeUserCenterData.CenterClock    = stModeInfo.IHTotal;
+ 986                      stModeUserCenterData.CenterPhase    = 0x00;
+ 987                  }
+ 988              }
+ 989          
+ 990              if((stModeUserCenterData.CenterHPos == 0xffff) && (stModeUserCenterData.CenterVPos == 0xffff) && (stMo
+             -deUserCenterData.CenterClock == 0xffff))
+ 991              {
+ 992                  stModeUserCenterData.CenterHPos     = stModeInfo.IHStartPos;
+ 993                  stModeUserCenterData.CenterVPos     = stModeInfo.IVStartPos;
+ 994                  stModeUserCenterData.CenterClock    = stModeInfo.IHTotal;
+ 995                  stModeUserCenterData.CenterPhase    = 0x00;
+ 996              }
+ 997          
+ 998          }
+ 999          */
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 18  
+
+1000          //--------------------------------------------------
+1001          // Description  :
+1002          // Input Value  :
+1003          // Output Value : None
+1004          //--------------------------------------------------
+1005          void CEepromLoadCenterModeData(BYTE ucMode)
+1006          {
+1007   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+1008   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+1009   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+1010   1          /*
+1011   1          if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+1012   1          {
+1013   1              if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + (WORD)ucMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DAT
+             -A_SIZE, pData) == _FAIL)
+1014   1              {
+1015   1                  stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+1016   1                  stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+1017   1                  stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+1018   1                  stModeUserCenterData.CenterPhase = 0x00;
+1019   1              }
+1020   1              else
+1021   1              {
+1022   1                  stModeUserCenterData.CenterHPos = (((WORD)(pData[0]) << 4) & 0x0F00) | pData[1];
+1023   1                  stModeUserCenterData.CenterVPos = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[2];
+1024   1                  stModeUserCenterData.CenterClock = (((WORD)(pData[3]) << 8) & 0x0F00) | pData[4];
+1025   1                  stModeUserCenterData.CenterPhase = pData[5];
+1026   1              }
+1027   1          }
+1028   1          else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+1029   1          {
+1030   1              if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * _MODE_CENTER_DATA_SIZE + (WORD
+             -)ucMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DATA_SIZE, pData) == _FAIL)
+1031   1              {
+1032   1                  stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+1033   1                  stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+1034   1                  stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+1035   1                  stModeUserCenterData.CenterPhase = 0x00;
+1036   1              }
+1037   1              else
+1038   1              {
+1039   1                  stModeUserCenterData.CenterHPos = (((WORD)(pData[0]) << 4) & 0x0F00) | pData[1];
+1040   1                  stModeUserCenterData.CenterVPos = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[2];
+1041   1                  stModeUserCenterData.CenterClock = (((WORD)(pData[3]) << 8) & 0x0F00) | pData[4];
+1042   1                  stModeUserCenterData.CenterPhase = pData[5];
+1043   1              }
+1044   1          }
+1045   1          */
+1046   1      #if(_FIFO_MODE_ONLY == _ON)
+1047   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+1048   1          // Patch Reason : Support Auto Config For Yuv Color.
+1049   1          /*
+1050   1          // Just for the warning from the compiler.
+1051   1          ucMode = g_ucFIFOModeNum;
+1052   1      
+1053   1          if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + g_ucFIFOModeNum * sizeof(StructModeUserCenterDataType), siz
+             -eof(StructModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos) == _FAIL)
+1054   1          {
+1055   1              stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+1056   1              stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+1057   1              stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+1058   1              stModeUserCenterData.CenterPhase = 0x00;
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 19  
+
+1059   1          }
+1060   1          */
+1061   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+1062   1          if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+1063   1          {
+1064   2              if(CEepromRead(_MODE_CENTER_DATA_YPBPR_ADDRESS + ucMode * sizeof(StructModeUserCenterDataType), si
+             -zeof(StructModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos) == _FAIL)
+1065   2              {
+1066   3                  stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+1067   3                  stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+1068   3                  stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+1069   3                  stModeUserCenterData.CenterPhase = 0x00;
+1070   3              }
+1071   2          }
+1072   1          else
+1073   1      #endif
+1074   1          {
+1075   2      #if((_FIFO_MODE_ONLY == _OFF) || (_YUV_AUTO_CONFIG_SUPPORT == _OFF))
+                      // Just for the warning from the compiler.
+                      ucMode = g_ucFIFOModeNum;
+              #endif
+1079   2              if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + g_ucFIFOModeNum * sizeof(StructModeUserCenterDataType),
+             - sizeof(StructModeUserCenterDataType), (BYTE *)&stModeUserCenterData.CenterHPos) == _FAIL)
+1080   2              {
+1081   3                  stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+1082   3                  stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+1083   3                  stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+1084   3                  stModeUserCenterData.CenterPhase = 0x00;
+1085   3              }
+1086   2          }
+1087   1          // V013 VGA Patch Note (10) 20100416 Modify End
+1088   1      #else
+                  if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+                  {
+                      if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + (WORD)ucMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DAT
+             -A_SIZE, pData) == _FAIL)
+                      {
+                          stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+                          stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+                          stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+                          stModeUserCenterData.CenterPhase = 0x00;
+                      }
+                      else
+                      {
+                          stModeUserCenterData.CenterHPos = (((WORD)(pData[0]) << 4) & 0x0F00) | pData[1];
+                          stModeUserCenterData.CenterVPos = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[2];
+                          stModeUserCenterData.CenterClock = (((WORD)(pData[3]) << 8) & 0x0F00) | pData[4];
+                          stModeUserCenterData.CenterPhase = pData[5];
+                      }
+                  }
+                  else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+                  {
+                      if(CEepromRead(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * _MODE_CENTER_DATA_SIZE + (WORD
+             -)ucMode * _MODE_CENTER_DATA_SIZE, _MODE_CENTER_DATA_SIZE, pData) == _FAIL)
+                      {
+                          stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+                          stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+                          stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+                          stModeUserCenterData.CenterPhase = 0x00;
+                      }
+                      else
+                      {
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 20  
+
+                          stModeUserCenterData.CenterHPos = (((WORD)(pData[0]) << 4) & 0x0F00) | pData[1];
+                          stModeUserCenterData.CenterVPos = (((WORD)(pData[0]) << 8) & 0x0F00) | pData[2];
+                          stModeUserCenterData.CenterClock = (((WORD)(pData[3]) << 8) & 0x0F00) | pData[4];
+                          stModeUserCenterData.CenterPhase = pData[5];
+                      }
+                  }
+              #endif
+1124   1          // V013 VGA Patch Note (11) Modify 20100416 End
+1125   1      
+1126   1          if((stModeUserCenterData.CenterHPos == 0xffff) && (stModeUserCenterData.CenterVPos == 0xffff) && (stMo
+             -deUserCenterData.CenterClock == 0xffff))
+1127   1          {
+1128   2              stModeUserCenterData.CenterHPos = stModeInfo.IHStartPos;
+1129   2              stModeUserCenterData.CenterVPos = stModeInfo.IVStartPos;
+1130   2              stModeUserCenterData.CenterClock = stModeInfo.IHTotal;
+1131   2              stModeUserCenterData.CenterPhase = 0x00;
+1132   2          }
+1133   1      
+1134   1      }
+1135          // V012 Modify 20100309 End
+1136          
+1137          //--------------------------------------------------
+1138          // Description  : Initial mode setting data with defaults
+1139          // Input Value  : None
+1140          // Output Value : None
+1141          //--------------------------------------------------
+1142          void CEepromInitialCenterModeData(void)
+1143          {
+1144   1          // V013 VGA Patch Note (11) Modify 20100416 Start
+1145   1          // Patch Reason : Add FIFO Mode Only to save EEPROM space.
+1146   1          // Activate FIFO Mode Only to save EEPROM space with 63 FIFO modes only.
+1147   1          /*
+1148   1          BYTE modecnt, modetype;
+1149   1      
+1150   1          modetype = GET_MODE_SEARCH_TYPE();
+1151   1          SET_MODE_SEARCH_TYPE(_PRESET_MODE_TYPE);
+1152   1      
+1153   1          for(modecnt = 0; modecnt < _MAX_PRESET_MODE; modecnt++)
+1154   1          {
+1155   1              stModeUserCenterData.CenterHPos = tINPUTMODE_PRESET_TABLE[modecnt].IHStartPos;
+1156   1              stModeUserCenterData.CenterVPos = tINPUTMODE_PRESET_TABLE[modecnt].IVStartPos;
+1157   1              stModeUserCenterData.CenterClock = tINPUTMODE_PRESET_TABLE[modecnt].IHTotal;
+1158   1      
+1159   1              stModeUserCenterData.CenterPhase = 0x00;
+1160   1      
+1161   1              CEepromSaveCenterModeData(modecnt);
+1162   1          }
+1163   1      
+1164   1          // V012 Modify 20100309 Start
+1165   1          // V012 Patch Note (10) : Adjust EEPROM mode data structure to save space.
+1166   1          /*
+1167   1          for(modecnt=0; modecnt<8; modecnt++)
+1168   1          {
+1169   1              CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * 8 + ((WORD)modecnt * 16), 16, tE
+             -EPROM_USER_FIFO_MODE_DEFAULT);
+1170   1          }
+1171   1          * /
+1172   1          for(modecnt = 0; modecnt < _MODE_CENTER_DATA_SIZE; modecnt++)
+1173   1          {
+1174   1              CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * _MODE_CENTER_DATA_SIZE + ((WORD)
+             -modecnt * sizeof(tEEPROM_USER_FIFO_MODE_DEFAULT)), sizeof(tEEPROM_USER_FIFO_MODE_DEFAULT), tEEPROM_USER_FIFO_MODE_DEFAUL
+             -T);
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 21  
+
+1175   1          }
+1176   1          // V012 Modify 20100309 End
+1177   1      
+1178   1          SET_MODE_SEARCH_TYPE(modetype);
+1179   1          */
+1180   1      #if(_FIFO_MODE_ONLY == _ON)
+1181   1          BYTE ucModeCnt = 0;
+1182   1      
+1183   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+1184   1          // Patch Reason : Support Auto Config For Yuv Color.
+1185   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+1186   1          BYTE ucModeType = 0;
+1187   1      #endif
+1188   1          // V013 VGA Patch Note (10) 20100416 Modify End
+1189   1      
+1190   1          for(ucModeCnt = 0; ucModeCnt <= _MAX_FIFO_MODE_INDEX; ucModeCnt++)
+1191   1          {
+1192   2              g_ucFIFOModeNum = ucModeCnt;
+1193   2              stModeUserCenterData.CenterHPos = 0xFFFF;
+1194   2              stModeUserCenterData.CenterVPos = 0xFFFF;
+1195   2              stModeUserCenterData.CenterClock = 0xFFFF;
+1196   2              stModeUserCenterData.CenterPhase = 0xFF;
+1197   2      
+1198   2              CEepromSaveCenterModeData(ucModeCnt);
+1199   2          }
+1200   1      
+1201   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+1202   1          // Patch Reason : Support Auto Config For Yuv Color.
+1203   1      #if((_FIFO_MODE_ONLY == _ON) && (_YUV_AUTO_CONFIG_SUPPORT == _ON))
+1204   1          ucModeType = GET_INPUTSOURCE_TYPE();
+1205   1          SET_INPUTSOURCE_TYPE(_SOURCE_YPBPR);
+1206   1      
+1207   1          for(ucModeCnt = 0; ucModeCnt < _MAX_YPBPR_MODE; ucModeCnt++)
+1208   1          {
+1209   2              stModeUserCenterData.CenterHPos = tYPBPR_MODE_TABLE[ucModeCnt].IHStartPos;
+1210   2              stModeUserCenterData.CenterVPos = tYPBPR_MODE_TABLE[ucModeCnt].IVStartPos;
+1211   2              stModeUserCenterData.CenterClock = tYPBPR_MODE_TABLE[ucModeCnt].IHTotal;
+1212   2              stModeUserCenterData.CenterPhase = 0x00;
+1213   2      
+1214   2              CEepromSaveCenterModeData(ucModeCnt);
+1215   2          }
+1216   1      
+1217   1          SET_INPUTSOURCE_TYPE(ucModeType);
+1218   1      #endif
+1219   1          // V013 VGA Patch Note (10) 20100416 Modify End
+1220   1      #else
+                  BYTE ucModeCnt = 0;
+                  BYTE ucModeType = 0;
+              
+                  ucModeType = GET_MODE_SEARCH_TYPE();
+                  SET_MODE_SEARCH_TYPE(_PRESET_MODE_TYPE);
+              
+                  for(ucModeCnt = 0; ucModeCnt < _MAX_PRESET_MODE; ucModeCnt++)
+                  {
+                      stModeUserCenterData.CenterHPos = tINPUTMODE_PRESET_TABLE[ucModeCnt].IHStartPos;
+                      stModeUserCenterData.CenterVPos = tINPUTMODE_PRESET_TABLE[ucModeCnt].IVStartPos;
+                      stModeUserCenterData.CenterClock = tINPUTMODE_PRESET_TABLE[ucModeCnt].IHTotal;
+                      stModeUserCenterData.CenterPhase = 0x00;
+              
+                      CEepromSaveCenterModeData(ucModeCnt);
+                  }
+              
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 22  
+
+                  for(ucModeCnt = 0; ucModeCnt < 16; ucModeCnt++)
+                  {
+                      CEepromWrite(_MODE_CENTER_DATA_ADDRESS + (WORD)_MAX_PRESET_MODE * _MODE_CENTER_DATA_SIZE + ((WORD)
+             -ucModeCnt * _MODE_CENTER_DATA_SIZE), _MODE_CENTER_DATA_SIZE, tEEPROM_USER_FIFO_MODE_DEFAULT);
+                  }
+              
+                  SET_MODE_SEARCH_TYPE(ucModeType);
+              #endif
+1244   1          // V013 VGA Patch Note (11) Modify 20100416 End
+1245   1      }
+1246          
+1247          //----------------------------------------------------------------------------------------------------
+1248          
+1249          //--------------------------------------------------
+1250          // Description  : Save system data
+1251          // Input Value  : None
+1252          // Output Value : None
+1253          //--------------------------------------------------
+1254          void CEepromSaveSystemData(void)
+1255          {
+1256   1          CEepromWrite(_SYSTEM_DATA_ADDRESS, sizeof(StructSystemDataType), &stSystemData.MonitorFlag);
+1257   1      }
+1258          
+1259          //--------------------------------------------------
+1260          // Description  : Load system data
+1261          // Input Value  : None
+1262          // Output Value : None
+1263          //--------------------------------------------------
+1264          void CEepromLoadSystemData(void)
+1265          {
+1266   1          CEepromRead(_SYSTEM_DATA_ADDRESS, sizeof(StructSystemDataType), &stSystemData.MonitorFlag);
+1267   1      if(stSystemData.SearchIndex>1)
+1268   1              {
+1269   2              stSystemData.SearchIndex=1;//sjp20111206
+1270   2              CEepromSaveSystemData();        
+1271   2              }       
+1272   1              
+1273   1      }
+1274          
+1275          //--------------------------------------------------
+1276          // Description  : Load default system data
+1277          // Input Value  : None
+1278          // Output Value : None
+1279          //--------------------------------------------------
+1280          void CEepromLoadSystemDataDefault(void)
+1281          {
+1282   1          CEepromWrite(_SYSTEM_DATA_ADDRESS, sizeof(StructSystemDataType), &tEEPROM_SYSTEM_DATA.MonitorFlag);
+1283   1          stSystemData = tEEPROM_SYSTEM_DATA;
+1284   1      #if _DEBUG_MESSAGE_SUPPORT
+1285   1              CDebugMessage("tEEPROM_SYSTEM_DATA.BackLight", tEEPROM_SYSTEM_DATA.BackLight);
+1286   1              CDebugMessage("stSystemData.BackLight",stSystemData.BackLight);
+1287   1      #endif
+1288   1              CEepromLoadSystemData();
+1289   1      #if _DEBUG_MESSAGE_SUPPORT
+1290   1              CDebugMessage("tEEPROM_SYSTEM_DATA.BackLight_load", tEEPROM_SYSTEM_DATA.BackLight);
+1291   1              CDebugMessage("stSystemData.BackLight_load",stSystemData.BackLight);
+1292   1      #endif
+1293   1      }
+1294          
+1295          //----------------------------------------------------------------------------------------------------
+1296          
+1297          //--------------------------------------------------
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 23  
+
+1298          // Description  : Save OSD data
+1299          // Input Value  : None
+1300          // Output Value : None
+1301          //--------------------------------------------------
+1302          void CEepromSaveOsdUserData(void)
+1303          {
+1304   1          CEepromWrite(_OSDUSER_DATA_ADDRESS, sizeof(StructOsdUserDataType), &stOsdUserData.OsdSettingFlag);
+1305   1      }
+1306          
+1307          //--------------------------------------------------
+1308          // Description  : Load OSD data
+1309          // Input Value  : None
+1310          // Output Value : None
+1311          //--------------------------------------------------
+1312          void CEepromLoadOsdUserData(void)
+1313          {
+1314   1          CEepromRead(_OSDUSER_DATA_ADDRESS, sizeof(StructOsdUserDataType), &stOsdUserData.OsdSettingFlag);
+1315   1      }
+1316          
+1317          //--------------------------------------------------
+1318          // Description  : Load default OSD data
+1319          // Input Value  : None
+1320          // Output Value : None
+1321          //--------------------------------------------------
+1322          void CEepromLoadOsdUserDataDefault(void)
+1323          {
+1324   1          CEepromWrite(_OSDUSER_DATA_ADDRESS, sizeof(StructOsdUserDataType), &tEEPROM_OSDUSER_DATA.OsdSettingFla
+             -g);
+1325   1          stOsdUserData = tEEPROM_OSDUSER_DATA;
+1326   1      }
+1327          
+1328          //----------------------------------------------------------------------------------------------------
+1329          
+1330          //--------------------------------------------------
+1331          // Description  : Save OSD data Factory
+1332          // Input Value  : None
+1333          // Output Value : None
+1334          //--------------------------------------------------
+1335          void CEepromSaveOsdReserveData(void)
+1336          {
+1337   1          CEepromWrite(_OSDRESERVE_DATA_ADDRESS, sizeof(StructOsdReserveDataType), &stOsdReserveData.OsdReserveF
+             -lag);
+1338   1      }
+1339          
+1340          //--------------------------------------------------
+1341          // Description  : Load OSD data Factory
+1342          // Input Value  : None
+1343          // Output Value : None
+1344          //--------------------------------------------------
+1345          void CEepromLoadOsdReserveData(void)
+1346          {
+1347   1          CEepromRead(_OSDRESERVE_DATA_ADDRESS, sizeof(StructOsdReserveDataType), &stOsdReserveData.OsdReserveFl
+             -ag);
+1348   1      }
+1349          
+1350          //--------------------------------------------------
+1351          // Description  : Load default OSD data Factory
+1352          // Input Value  : None
+1353          // Output Value : None
+1354          //--------------------------------------------------
+1355          void CEepromLoadOsdReserveDataDefault(void)
+1356          {
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 24  
+
+1357   1          CEepromWrite(_OSDRESERVE_DATA_ADDRESS, sizeof(StructOsdReserveDataType), &tEEPROM_OSDRESERVE_DATA.OsdR
+             -eserveFlag);
+1358   1          stOsdReserveData = tEEPROM_OSDRESERVE_DATA;
+1359   1      }
+1360          
+1361          //----------------------------------------------------------------------------------------------------
+1362          
+1363          
+1364          //--------------------------------------------------
+1365          // Description  : Save ADC data
+1366          // Input Value  : None
+1367          // Output Value : None
+1368          //--------------------------------------------------
+1369          void CEepromSaveAdcData(void)
+1370          {
+1371   1      
+1372   1          if(GET_INPUTSOURCE_TYPE() == _SOURCE_VGA)
+1373   1          {
+1374   2          
+1375   2              CEepromWrite(_ADC_DATA_ADDRESS, sizeof(StructAdcDataType), &stAdcData.AdcGain[_RED]);
+1376   2              CEepromWrite(_ADC_DATA_ADDRESS + sizeof(StructAdcDataType), 1, &g_ucAdcPGA);
+1377   2          }
+1378   1      
+1379   1      #if(_YPBPR_SUPPORT == _ON)
+1380   1          else if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+1381   1          {
+1382   2              CEepromWrite(_ADC_DATA_ADDRESS + sizeof(StructAdcDataType) + 1, sizeof(StructAdcDataType), &stAdcD
+             -ata.AdcGain[_RED]);
+1383   2              CEepromWrite(_ADC_DATA_ADDRESS + (sizeof(StructAdcDataType) * 2) + 1, 1, &g_ucAdcPGA);
+1384   2          }
+1385   1      #endif
+1386   1      }
+1387          
+1388          //--------------------------------------------------
+1389          // Description  : Load ADC data
+1390          // Input Value  : None
+1391          // Output Value : None
+1392          //--------------------------------------------------
+1393          void CEepromLoadAdcData(void)
+1394          {
+1395   1          if(GET_INPUTSOURCE_TYPE() == _SOURCE_VGA)
+1396   1          {
+1397   2              CEepromRead(_ADC_DATA_ADDRESS, sizeof(StructAdcDataType), &stAdcData.AdcGain[_RED]);
+1398   2              CEepromRead(_ADC_DATA_ADDRESS + sizeof(StructAdcDataType), 1, &g_ucAdcPGA);
+1399   2          }
+1400   1      
+1401   1      #if(_YPBPR_SUPPORT == _ON)
+1402   1          else if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+1403   1          {
+1404   2              CEepromRead(_ADC_DATA_ADDRESS + sizeof(StructAdcDataType) + 1, sizeof(StructAdcDataType), &stAdcDa
+             -ta.AdcGain[_RED]);
+1405   2              CEepromRead(_ADC_DATA_ADDRESS + (sizeof(StructAdcDataType) * 2) + 1, 1, &g_ucAdcPGA);
+1406   2          }
+1407   1      #endif
+1408   1      
+1409   1      }
+1410          
+1411          //--------------------------------------------------
+1412          // Description  : Load default ADC data
+1413          // Input Value  : None
+1414          // Output Value : None
+1415          //--------------------------------------------------
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 25  
+
+1416          void CEepromLoadAdcDataDefault(void)
+1417          {
+1418   1          stAdcData = tEEPROM_ADC_DATA;
+1419   1          g_ucAdcPGA = 0x07;
+1420   1      
+1421   1          CEepromWrite(_ADC_DATA_ADDRESS, sizeof(StructAdcDataType), &tEEPROM_ADC_DATA.AdcGain[_RED]);
+1422   1          CEepromWrite(_ADC_DATA_ADDRESS + sizeof(StructAdcDataType), 1, &g_ucAdcPGA);
+1423   1          CEepromWrite(_ADC_DATA_ADDRESS + sizeof(StructAdcDataType) + 1, sizeof(StructAdcDataType), &tEEPROM_AD
+             -C_DATA.AdcGain[_RED]);
+1424   1          CEepromWrite(_ADC_DATA_ADDRESS + (sizeof(StructAdcDataType) * 2) + 1, 1, &g_ucAdcPGA);
+1425   1      }
+1426          
+1427          //----------------------------------------------------------------------------------------------------
+1428          
+1429          //----------------------------------------------------------------------------------------------------
+1430          // SJP20110625
+1431          //--------------------------------------------------
+1432          // Description  : Save LSlumi data
+1433          // Input Value  : None
+1434          // Output Value : None
+1435          //--------------------------------------------------
+1436          void CEepromSaveLSlumiData(void)
+1437          {
+1438   1                  CEepromWrite(_LSLUMI_DATA_ADDRESS, sizeof(StructLSlumiDataType), (BYTE*)&stLSlumiData.DICOM350);
+1439   1      
+1440   1      }
+1441          
+1442          //--------------------------------------------------
+1443          // Description  : Load LSlumi data
+1444          // Input Value  : None
+1445          // Output Value : None
+1446          //--------------------------------------------------
+1447          void CEepromLoadLSlumiData(void)
+1448          {
+1449   1                  CEepromRead(_LSLUMI_DATA_ADDRESS, sizeof(StructLSlumiDataType), (BYTE*)&stLSlumiData.DICOM350);
+1450   1      }
+1451          
+1452          
+1453          //--------------------------------------------------
+1454          // Description  : Load default Lslumi data
+1455          // Input Value  : None
+1456          // Output Value : None
+1457          //--------------------------------------------------
+1458          void CEepromLoadLSlumiDataDefault(void)
+1459          {
+1460   1              stLSlumiData=tEEPROM_LSLUMI_DATA;
+1461   1              CEepromWrite(_LSLUMI_DATA_ADDRESS, sizeof(StructLSlumiDataType),(BYTE*) &tEEPROM_LSLUMI_DATA.DICOM350);//
+             -BYTE* NEED TO BE added
+1462   1      }
+1463          
+1464          //----------------------------------------------------------------------------------------------------
+1465          
+1466          //----------------------------------------------------------------------------------------------------
+1467          // SJP20110715
+1468          //--------------------------------------------------
+1469          // Description  : Save PWMlumi data
+1470          // Input Value  : None
+1471          // Output Value : None
+1472          //--------------------------------------------------
+1473          void CEepromSavePWMlumiData(void)
+1474          {
+1475   1              CEepromWrite(_PWMLUMI_DATA_ADDRESS, sizeof(StructPWMlumiDataType), (BYTE*)&stPWMlumiData.DICOM350);
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 26  
+
+1476   1      }
+1477          //--------------------------------------------------
+1478          // Description  : Load PWMlumi data
+1479          // Input Value  : None
+1480          // Output Value : None
+1481          //--------------------------------------------------
+1482          void CEepromLoadPWMlumiData(void)
+1483          {
+1484   1              CEepromRead(_PWMLUMI_DATA_ADDRESS, sizeof(StructPWMlumiDataType), (BYTE*)&stPWMlumiData.DICOM350);
+1485   1              tOSD_DICOMlumi[0] = stPWMlumiData.DICOM350;
+1486   1              tOSD_DICOMlumi[1]=      stPWMlumiData.DICOM400;
+1487   1              tOSD_DICOMlumi[2]=      stPWMlumiData.DICOM450;
+1488   1              tOSD_DICOMlumi[3]=stPWMlumiData.DICOM500;
+1489   1              tOSD_DICOMlumi[4]=stPWMlumiData.DICOM550;
+1490   1              tOSD_DICOMlumi[5]=stPWMlumiData.DICOM600;
+1491   1              tOSD_DICOMlumi[6]=stPWMlumiData.DICOM650;
+1492   1              tOSD_DICOMlumi[7]=      stPWMlumiData.DICOM700;
+1493   1              tOSD_DICOMlumi[8]=stPWMlumiData.DICOM500;
+1494   1              tOSD_DICOMlumi[9]=stPWMlumiData.DICOM500;
+1495   1              tOSD_DICOMlumi[10]=stPWMlumiData.DICOM500;
+1496   1      }
+1497          //--------------------------------------------------
+1498          // Description  : Load default PWMlumi data
+1499          // Input Value  : None
+1500          // Output Value : None
+1501          //--------------------------------------------------
+1502          void CEepromLoadPWMlumiDataDefault(void)
+1503          {
+1504   1              stPWMlumiData=tEEPROM_PWMLUMI_DATA;
+1505   1              CEepromWrite(_PWMLUMI_DATA_ADDRESS, sizeof(StructPWMlumiDataType),(BYTE*) &tEEPROM_PWMLUMI_DATA.DICOM350)
+             -;//BYTE* NEED TO BE added
+1506   1              tOSD_DICOMlumi[0] = stPWMlumiData.DICOM350;
+1507   1              tOSD_DICOMlumi[1]=      stPWMlumiData.DICOM400;
+1508   1              tOSD_DICOMlumi[2]=      stPWMlumiData.DICOM450;
+1509   1              tOSD_DICOMlumi[3]=stPWMlumiData.DICOM500;
+1510   1              tOSD_DICOMlumi[4]=stPWMlumiData.DICOM550;
+1511   1              tOSD_DICOMlumi[5]=stPWMlumiData.DICOM600;
+1512   1              tOSD_DICOMlumi[6]=stPWMlumiData.DICOM650;
+1513   1              tOSD_DICOMlumi[7]=      stPWMlumiData.DICOM700;
+1514   1              tOSD_DICOMlumi[8]=stPWMlumiData.DICOM500;
+1515   1              tOSD_DICOMlumi[9]=stPWMlumiData.DICOM500;
+1516   1              tOSD_DICOMlumi[10]=stPWMlumiData.DICOM500;
+1517   1      }
+1518          
+1519          //----------------------------------------------------------------------------------------------------
+1520          
+1521          //----------------------------------------------------------------------------------------------------
+1522          //--------------------------------------------------
+1523          // Description  : Save Brightness/Contrast data
+1524          // Input Value  : None
+1525          // Output Value : None
+1526          //--------------------------------------------------
+1527          void CEepromSaveBriConData(void)
+1528          {
+1529   1          if(GET_INPUTSOURCE_TYPE() != _SOURCE_NONE)
+1530   1          {
+1531   2              CEepromWrite(_COLOR_PROC0_ADDRESS + (GET_INPUTSOURCE_TYPE()) * 5, 4, &stConBriData.Brightness);
+1532   2          }
+1533   1      }
+1534          
+1535          //--------------------------------------------------
+1536          // Description  : Load Brightness/Contrast data
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 27  
+
+1537          // Input Value  : None
+1538          // Output Value : None
+1539          //--------------------------------------------------
+1540          void CEepromLoadBriConData(void)
+1541          {
+1542   1          if(GET_INPUTSOURCE_TYPE() != _SOURCE_NONE)
+1543   1          {
+1544   2              CEepromRead(_COLOR_PROC0_ADDRESS + (GET_INPUTSOURCE_TYPE()) * 5, 5, &stConBriData.Brightness);
+1545   2          }
+1546   1      if(stConBriData.Dicom>10)
+1547   1              {
+1548   2              stConBriData.Dicom=0;//sjp20111207
+1549   2              CEepromSaveBriConData();
+1550   2              }
+1551   1      if(stConBriData.Gamma>4)
+1552   1      {
+1553   2              stConBriData.Gamma =0;//sjp20111207
+1554   2              CEepromSaveBriConData();
+1555   2      }
+1556   1      if((stConBriData.Contrast>0x90)||(stConBriData.Contrast<0x70))
+1557   1      {
+1558   2              stConBriData.Contrast=0x80;//sjp20111207
+1559   2              CEepromSaveBriConData();
+1560   2      }
+1561   1      if((stConBriData.Brightness>0x90)||(stConBriData.Brightness<0x70))
+1562   1      {
+1563   2              stConBriData.Brightness=0x80;//sjp20111207
+1564   2              CEepromSaveBriConData();
+1565   2      }
+1566   1      }
+1567          
+1568          //--------------------------------------------------
+1569          // Description  : Load default Brightness/Contrast data
+1570          // Input Value  : None
+1571          // Output Value : None
+1572          //--------------------------------------------------
+1573          void CEepromLoadBriConDataDefault(void)
+1574          {
+1575   1          CEepromWrite(_COLOR_PROC0_ADDRESS, (5 * _SOURCE_AMOUNT), &tEEPROM_COLOR_PROC0_DATA[0].Brightness);
+1576   1          CEepromLoadBriConData();
+1577   1      }
+1578          
+1579          //----------------------------------------------------------------------------------------------------
+1580          
+1581          //--------------------------------------------------
+1582          // Description  : Save Color Temperature data
+1583          // Input Value  : None
+1584          // Output Value : None
+1585          //--------------------------------------------------
+1586          void CEepromSaveColorTempData(void)
+1587          {
+1588   1          if(GET_INPUTSOURCE_TYPE() != _SOURCE_NONE)
+1589   1          {
+1590   2              CEepromWrite(_COLORTEMP_DATA_ADDRESS + (_CT_COLORTEMP_AMOUNT * 3) * GET_INPUTSOURCE_TYPE() + 3 * G
+             -ET_COLOR_TEMP_TYPE(), 3, &stColorTempData.ColorTemp[_RED]);
+1591   2          }
+1592   1      }
+1593          
+1594          //--------------------------------------------------
+1595          // Description  : Load Color Temperature data
+1596          // Input Value  : None
+1597          // Output Value : None
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 28  
+
+1598          //--------------------------------------------------
+1599          void CEepromLoadColorTempData(void)
+1600          {
+1601   1          if(GET_INPUTSOURCE_TYPE() != _SOURCE_NONE)
+1602   1          {
+1603   2              CEepromRead(_COLORTEMP_DATA_ADDRESS + (_CT_COLORTEMP_AMOUNT * 3) * GET_INPUTSOURCE_TYPE() + 3 * GE
+             -T_COLOR_TEMP_TYPE(), 3, &stColorTempData.ColorTemp[_RED]);
+1604   2          }
+1605   1      }
+1606          
+1607          //--------------------------------------------------
+1608          // Description  : Load default Color Temperature data
+1609          // Input Value  : None
+1610          // Output Value : None
+1611          //--------------------------------------------------
+1612          void CEepromLoadColorTempDataDefault(void)
+1613          {
+1614   1          CEepromWrite(_COLORTEMP_DATA_ADDRESS, ((_CT_COLORTEMP_AMOUNT * 3)  * (_SOURCE_AMOUNT)), &tEEPROM_COLOR
+             -TEMP_DATA[0].ColorTemp9300Red);
+1615   1          CEepromLoadColorTempData();
+1616   1      }
+1617          
+1618          //----------------------------------------------------------------------------------------------------
+1619          
+1620          
+1621          //--------------------------------------------------
+1622          // Description  : Load EDID data to DDC RAM
+1623          // Input Value  : ucTable --> Default EDID Table or Flash Data
+1624          // Output Value : None
+1625          //--------------------------------------------------
+1626          void CEepromLoadDDCData(void)
+1627          {
+1628   1          WORD cnt;
+1629   1      #if(_EMBEDDED_EDID == _ON)
+              #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+              
+                  for(cnt = 0; cnt < 128; cnt++)
+                  {
+                      MCU_DDCRAM_A0[cnt] = tEDID_TABLE_A0[cnt];
+                  }
+              
+              #if(_TMDS_SUPPORT == _ON)
+                  for(cnt = 0; cnt < 256; cnt++)
+                  {
+              #if((_DDC_CHANNEL_FOR_D0 == _DDC2))
+                      MCU_DDCRAM_DDC2[cnt] = tEDID_TABLE_D0[cnt];
+                      MCU_DDCRAM_DDC3[cnt] = tEDID_TABLE_D1[cnt];
+              #else
+                      MCU_DDCRAM_DDC2[cnt] = tEDID_TABLE_D1[cnt];
+                      MCU_DDCRAM_DDC3[cnt] = tEDID_TABLE_D0[cnt];
+              #endif
+                  }
+              
+              #endif
+              
+              #else
+              
+                  for(cnt = 0; cnt < 128; cnt++)
+                  {
+                      MCU_DDCRAM_A0[cnt] = tEDID_TABLE_A0[cnt];
+                  }
+              
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 29  
+
+                  for(cnt = 0; cnt < 256; cnt++)
+                  {
+                      MCU_DDCRAM_D0[cnt] = tEDID_TABLE_D0[cnt];
+                  }
+              
+              #endif // End of #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+              
+              #else //Else of #if(_EMBEDDED_EDID == _ON)
+1666   1      
+1667   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+1668   1      
+1669   1          for(cnt = 0; cnt < 256; cnt++)
+1670   1          {
+1671   2      #if((_DDC_CHANNEL_FOR_D0 == _DDC2) && (_D0_INPUT_PORT_TYPE == _D0_DP_PORT))
+                      MCU_DDCRAM_DDC2[cnt] = tEDID_TABLE_D0[cnt];
+              #elif(_DDC_CHANNEL_FOR_D0 == _DDC3) && (_D0_INPUT_PORT_TYPE == _D0_DP_PORT)
+                      MCU_DDCRAM_DDC3[cnt] = tEDID_TABLE_D0[cnt];
+              #elif(_DDC_CHANNEL_FOR_D1 == _DDC2) && (_D1_INPUT_PORT_TYPE == _D1_DP_PORT)
+                      MCU_DDCRAM_DDC2[cnt] = tEDID_TABLE_D1[cnt];
+              #elif(_DDC_CHANNEL_FOR_D1 == _DDC3) && (_D1_INPUT_PORT_TYPE == _D1_DP_PORT)
+                      MCU_DDCRAM_DDC3[cnt] = tEDID_TABLE_D1[cnt];
+              #endif
+1680   2          }
+1681   1      #endif // End of #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+1682   1      #endif //End of #if(_EMBEDDED_EDID == _ON)
+1683   1      
+1684   1      }
+1685          
+1686          #if(_DDCCI_SUPPORT == _ON)
+              //--------------------------------------------------
+              // Description  : Load backlight
+              // Input Value  : None
+              // Output Value : None
+              //--------------------------------------------------
+              void CEepromLoadBackLightDefault(void)
+              {
+                  stSystemData.BackLight = tEEPROM_SYSTEM_DATA.BackLight;
+                  CEepromSaveSystemData();
+              }
+              #endif
+1698          
+1699          #endif  //End of #if(_MEMORY_LOCATION == _EEPROM)
+1700          
+1701          
+1702          
+1703          //--------------------------------------------------------------------------------------------------------
+             -------------
+1704          //******************* Using Flash to replace external Eeprom *******************//
+1705          //--------------------------------------------------------------------------------------------------------
+             -------------
+1706          
+1707          
+1708          
+1709          //--------------------------------------------------------------------------------------------------------
+             -------------
+1710          
+1711          
+1712          #endif  // End of #if(_OSD_TYPE == _REALTEK_OSD)
+1713          
+1714          
+
+
+C51 COMPILER V8.02   REALTEK_EEPROM                                                        03/05/2012 13:24:23 PAGE 30  
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2678    ----
+   CONSTANT SIZE    =    767    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      46
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

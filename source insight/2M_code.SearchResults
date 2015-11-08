@@ -1,0 +1,10 @@
+---- CUartTransferNumToScr Matches (9 in 3 files) ----
+Misc.c (e:\2m_code\v4.1_0229\scaler\code)://CUartTransferNumToScr('a', 0);//uart zp0704
+Uart.c (e:\2m_code\v4.1_0229\common\code):void CUartTransferNumToScr(WORD ch, BYTE mode )
+Uart.c (e:\2m_code\v4.1_0229\common\code):            CUartTransferNumToScr('\r', 0);
+Uart.c (e:\2m_code\v4.1_0229\common\code):            CUartTransferNumToScr(*(pstr + StrIndex), 0);
+Uart.c (e:\2m_code\v4.1_0229\common\code):            CUartTransferNumToScr(value, 1);
+Uart.c (e:\2m_code\v4.1_0229\common\code):            CUartTransferNumToScr(value, 2);
+Uart.c (e:\2m_code\v4.1_0229\common\code):            CUartTransferNumToScr(*(pstr + StrIndex), 0);
+Uart.h (e:\2m_code\v4.1_0229\common\header):void CUartTransferNumToScr(WORD ch, BYTE mode);
+Uart.h (e:\2m_code\v4.1_0229\common\header):extern void CUartTransferNumToScr(WORD ch, BYTE mode);

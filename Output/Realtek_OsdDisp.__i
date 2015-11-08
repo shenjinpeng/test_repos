@@ -1,0 +1,1 @@
+"User\Realtek OSD\Code\Realtek_OsdDisp.c" OPTIMIZE (9,SPEED) DEFINE (_PROJECT="_RTD2472D_DEMO_BOARD") PRINT(.\Output\Realtek_OsdDisp.lst) OBJECT(.\Output\Realtek_OsdDisp.obj)

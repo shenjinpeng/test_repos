@@ -1,0 +1,50 @@
+C51 COMPILER V8.02   REALTEK_RESERVED                                                      03/05/2012 13:24:28 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE REALTEK_RESERVED
+OBJECT MODULE PLACED IN .\Output\Realtek_Reserved.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE User\Realtek OSD\Code\Realtek_Reserved.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=
+                    -_RTD2472D_DEMO_BOARD) PRINT(.\Output\Realtek_Reserved.lst) OBJECT(.\Output\Realtek_Reserved.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          // V015 System Patch Note (7) Modify 20100630 Start
+  16          // Patch Reason : New EEPROM emulation process.
+  17          #include "Common\Header\Include.h"
+  18          
+  19          #if((_MERGE_EMULATION_TO_CODE == _ON) && (_MEMORY_LOCATION == _FLASH))
+              BYTE code tReservedFlashSpace[_FLASH_SPACE] = {0xFF};
+              #endif
+  22          
+  23          BYTE code ucAvoidWarning = 0;
+  24          // V015 System Patch Note (7) Modify 20100630 End
+  25          
+  26          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =      1    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

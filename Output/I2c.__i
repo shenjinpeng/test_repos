@@ -1,0 +1,1 @@
+"Common\Code\I2c.c" OPTIMIZE (9,SPEED) DEFINE (_PROJECT="_RTD2472D_DEMO_BOARD") PRINT(.\Output\I2c.lst) OBJECT(.\Output\I2c.obj)

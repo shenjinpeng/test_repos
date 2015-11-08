@@ -1,0 +1,757 @@
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE FRAMESYNC
+OBJECT MODULE PLACED IN .\Output\FrameSync.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE Scaler\Code\FrameSync.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_RTD2472D_DEMO_BO
+                    -ARD) PRINT(.\Output\FrameSync.lst) OBJECT(.\Output\FrameSync.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : FrameSync.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #define __FRAMESYNC__
+  21          
+  22          #include "Common\Header\Include.h"
+  23          #if(_SCALER_SERIES_TYPE == _RTD2472D_SERIES)
+  24          
+  25          //--------------------------------------------------
+  26          // Description  : Detect frame sync status
+  27          // Input Value  : None
+  28          // Output Value : Return _FALSE if frame sync is ok, _TRUE while PLL mislock, buffer underflow/overflow
+  29          //--------------------------------------------------
+  30          bit CFrameSyncDetect(void)
+  31          {
+  32   1          if(GET_POWERSTATUS() && GET_MODESTABLE())
+  33   1          {
+  34   2              CScalerRead(_STATUS0_02, 1, pData, _NON_AUTOINC);
+  35   2      
+  36   2              if((pData[0] & 0x63) == 0)
+  37   2              {
+  38   3      
+  39   3      #if(_YPBPR_SUPPORT == _ON)
+  40   3                  if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+  41   3                  {
+  42   4                      return _FALSE;
+  43   4                  }
+  44   3      #endif
+  45   3      
+  46   3      // APLL miss-lock must be checked even in FRC mode
+  47   3      #if(_FRC_SUPPORT == _ON)
+                          if(((pData[0] & 0x03) == 0) || GET_FRCSTATUS())
+              #endif
+  50   3                  {
+  51   4                      return _FALSE;
+  52   4                  }
+  53   3              }
+  54   2          }
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 2   
+
+  55   1      
+  56   1          CLR_FRAMESYNCSTATUS();
+  57   1      
+  58   1          return _TRUE;
+  59   1      }
+  60          
+  61          //--------------------------------------------------
+  62          // Description  : Finetune last line problem
+  63          // Input Value  : Dclk offset
+  64          // Output Value : Return _TRUE if there is no timing change
+  65          //--------------------------------------------------
+  66          bit CFrameSyncLastLineFinetune(WORD *pDelta)
+  67          {
+  68   1      #if(_LAST_LINE_FINETUNE == _LAST_LINE_METHOD_NONE)
+  69   1      
+  70   1          if(CFrameSyncTestSync(*pDelta))
+  71   1          {
+  72   2              return _FALSE;
+  73   2          }
+  74   1          else
+  75   1          {
+  76   2              return _TRUE;
+  77   2          }
+  78   1      
+  79   1      #endif
+  80   1      
+  81   1      #if(_LAST_LINE_FINETUNE == _LAST_LINE_METHOD_0)
+              
+                  // Formula: Tne DEN End to DEN Start Length must be (1280*N)
+                  // CPT's Panels.
+              
+                  WORD dvtotal;
+                  DWORD dclktotal = 0;
+              
+                  CScalerSetDataPortByte(_DISP_ACCESS_PORT_2A, _DISP_NEW_DV_CTRL_22, 0x00);
+              
+                  CScalerSetByte(_LAST_LINE_H_44, 0x00);
+              
+                  if(CFrameSyncTestSync(*pDelta))
+                  {
+                      return _FALSE;
+                  }
+              
+                  CScalerRead(_LAST_LINE_H_44, 2, pData, _AUTOINC);
+                  dclktotal = ((WORD)(pData[0] & 0x0f) << 8) | pData[1];
+              
+                  CScalerSetByte(_LAST_LINE_H_44, 0x80);
+                  CTimerDelayXms(40);
+                  CScalerRead(_LAST_LINE_H_44, 2, pData, _AUTOINC);
+                  dvtotal = ((WORD)(pData[0] & 0x0f) << 8) | pData[1];
+              
+                  dclktotal = dclktotal + (DWORD)stDisplayInfo.DHTotal * (dvtotal + 1 - stDisplayInfo.DVHeight);
+              
+                  dvtotal = dclktotal / 1280;
+                  dvtotal = dclktotal - ((DWORD)dvtotal * 1280);
+              
+                  *pDelta = (dvtotal > (1280 - 128)) ? (*pDelta + 3) : ((dvtotal < 128) ? (*pDelta - 3) : *pDelta);
+              
+                  CScalerSetDataPortByte(_DISP_ACCESS_PORT_2A, _DISP_NEW_DV_CTRL_22, 0xa0);
+              
+                  return _TRUE;
+              
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 3   
+
+              #endif
+ 118   1      
+ 119   1      #if(_LAST_LINE_FINETUNE == _LAST_LINE_METHOD_1)
+              
+                  // Formula: Tne DEN End to DEN Start Length must be (4096*N + 128)
+                  // Samsung's Panels.
+              
+                  WORD dvtotal;
+                  DWORD dclktotal = 0;
+              
+                  CScalerSetDataPortByte(_DISP_ACCESS_PORT_2A, _DISP_NEW_DV_CTRL_22, 0x00);
+              
+                  CScalerSetByte(_LAST_LINE_H_44, 0x00);
+              
+                  if(CFrameSyncTestSync(*pDelta))
+                  {
+                      return _FALSE;
+                  }
+              
+                  CScalerRead(_LAST_LINE_H_44, 2, pData, _AUTOINC);
+                  dclktotal = ((WORD)(pData[0] & 0x0f) << 8) | pData[1];
+              
+                  CScalerSetByte(_LAST_LINE_H_44, 0x80);
+                  CTimerDelayXms(40);
+                  CScalerRead(_LAST_LINE_H_44, 2, pData, _AUTOINC);
+                  dvtotal = ((WORD)(pData[0] & 0x0f) << 8) | pData[1];
+              
+                  dclktotal = dclktotal + (DWORD)stDisplayInfo.DHTotal * (dvtotal + 1 - stDisplayInfo.DVHeight) - 128;
+              
+                  dvtotal = dclktotal / 4096;
+                  dvtotal = dclktotal - ((DWORD)dvtotal * 4096);
+              
+                  *pDelta = (dvtotal > (4096 - 128)) ? (*pDelta + 3) : ((dvtotal < 128) ? (*pDelta - 3) : *pDelta);
+              
+                  CScalerSetDataPortByte(_DISP_ACCESS_PORT_2A, _DISP_NEW_DV_CTRL_22, 0xa0);
+              
+                  return _TRUE;
+              
+              #endif
+ 156   1      
+ 157   1      #if(_LAST_LINE_FINETUNE == _LAST_LINE_METHOD_2)
+              
+                  // Formula: Fixed to target last line pixels
+              
+                  DWORD dclktotal;
+                  DWORD dclktarget;
+                  WORD dvtotal;
+                  WORD lastlinepixels;
+                  SWORD offsetnew;
+              
+                  // Turn off new timing method
+                  CScalerSetDataPortByte(_DISP_ACCESS_PORT_2A, _DISP_NEW_DV_CTRL_22, 0x00);
+              
+                  // Measure DVTotal
+                  CScalerSetByte(_LAST_LINE_H_44, 0x80);
+                  if(CFrameSyncTestSync(*pDelta))
+                  {
+                      return _FALSE;
+                  }
+                  CScalerRead(_LAST_LINE_H_44, 2, pData, _AUTOINC);
+                  dvtotal = ((WORD)(pData[0] & 0x0f) << 8) | pData[1];
+              
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 4   
+
+                  // Measure last line clock numbers
+                  CScalerSetByte(_LAST_LINE_H_44, 0x00);
+                  if(CFrameSyncTestSync(*pDelta))
+                  {
+                      return _FALSE;
+                  }
+                  CScalerRead(_LAST_LINE_H_44, 2, pData, _AUTOINC);
+                  lastlinepixels = ((WORD)(pData[0] & 0x0f) << 8) | pData[1];
+              
+                  // Calculate total display clock numbers in a frame
+                  dclktotal = (DWORD)stDisplayInfo.DHTotal * dvtotal + lastlinepixels;
+              
+                  // Calculate mininum path of target clock numbers
+                  if(lastlinepixels > _LAST_LINE_TARGET)
+                  {
+                      if((lastlinepixels - _LAST_LINE_TARGET) > (stDisplayInfo.DHTotal / 2))
+                      {
+                          dclktarget = (DWORD)stDisplayInfo.DHTotal * (dvtotal + 1) + _LAST_LINE_TARGET;  // +
+                      }
+                      else
+                      {
+                          dclktarget = (DWORD)stDisplayInfo.DHTotal * (dvtotal) + _LAST_LINE_TARGET;  // -
+                      }
+                  }
+                  else
+                  {
+                      if((_LAST_LINE_TARGET - lastlinepixels) > (stDisplayInfo.DHTotal / 2))
+                      {
+                          dclktarget = (DWORD)stDisplayInfo.DHTotal * (dvtotal - 1) + _LAST_LINE_TARGET;  // -
+                      }
+                      else
+                      {
+                          dclktarget = (DWORD)stDisplayInfo.DHTotal * (dvtotal) + _LAST_LINE_TARGET;  // +
+                      }
+                  }
+              
+                  // Calculate and apply new offset
+                  offsetnew = (((SDWORD)dclktotal - (SDWORD)dclktarget) * ((SDWORD)32768 - (SDWORD)*pDelta)) * 2 / (SDWO
+             -RD)dclktotal;
+                  offsetnew = (offsetnew / 2) + ((offsetnew > 0) ? (offsetnew & 0x01) : -(offsetnew & 0x01));
+                  offsetnew = offsetnew + *pDelta;
+                  if(CFrameSyncTestSync(offsetnew))
+                  {
+                      return _FALSE;
+                  }
+              
+                  // Check underflow/overflow. If failed, try another side.
+                  if(pData[0])
+                  {
+                      if(pData[0] & 0x02)
+                      {
+                          dclktarget = dclktarget + stDisplayInfo.DHTotal;
+                      }
+                      else
+                      {
+                          dclktarget = dclktarget - stDisplayInfo.DHTotal;
+                      }
+              
+                      offsetnew = (((SDWORD)dclktotal - (SDWORD)dclktarget) * ((SDWORD)32768 - (SDWORD)*pDelta)) * 2 / (
+             -SDWORD)dclktotal;
+                      offsetnew = (offsetnew / 2) + ((offsetnew > 0) ? (offsetnew & 0x01) : -(offsetnew & 0x01));
+                      offsetnew = offsetnew + *pDelta;
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 5   
+
+                      if(CFrameSyncTestSync(offsetnew))
+                      {
+                          return _FALSE;
+                      }
+                  }
+              
+                  *pDelta = offsetnew;
+              
+                  return _TRUE;
+              
+              #endif
+ 250   1      }
+ 251          
+ 252          //--------------------------------------------------
+ 253          // Description  : Finetune Dclk offset for spread spectrum
+ 254          // Input Value  : Dclk offset
+ 255          // Output Value : Return _FALSE if there is no timing change
+ 256          //--------------------------------------------------
+ 257          BYTE CFrameSyncSpreadSpectrumFinetune(WORD *pDelta)
+ 258          {
+ 259   1          // Enable the spread spectrum function
+ 260   1          CAdjustDclkSpreadSpectrumRange(_DCLK_SPREAD_RANGE);
+ 261   1      
+ 262   1          *pDelta = *pDelta + tDCLK_OFFSET[_DCLK_SPREAD_RANGE];
+ 263   1      
+ 264   1          if(CFrameSyncTestSync(*pDelta))
+ 265   1          {
+ 266   2              return 2;
+ 267   2          }
+ 268   1      
+ 269   1          if(pData[0])
+ 270   1          {
+ 271   2              // Fine-tune DCLK offset
+ 272   2              if(CFrameSyncTestSync((pData[0] & 0x02) ? (*pDelta - 1) : (*pDelta + 1)))
+ 273   2              {
+ 274   3                  return 2;
+ 275   3              }
+ 276   2      
+ 277   2              if(pData[0] & 0x03)
+ 278   2              {
+ 279   3                  return 1;   //Frame sync fail!
+ 280   3              }
+ 281   2          }
+ 282   1      
+ 283   1          return 0;
+ 284   1      }
+ 285          
+ 286          //--------------------------------------------------
+ 287          // Description  : Calculate the suitable framesync point
+ 288          // Input Value  : None
+ 289          // Output Value : Return Dclk offset
+ 290          //--------------------------------------------------
+ 291          WORD CFrameSyncFastDo(void)
+ 292          {
+ 293   1          DWORD aclkcnt = 0;
+ 294   1          DWORD offset;
+ 295   1          BYTE mcode, div;
+ 296   1      
+ 297   1          CScalerSetBit(_SYNC_SELECT_47, ~(_BIT1 | _BIT0), 0x00);
+ 298   1          CScalerSetBit(_STABLE_PERIOD_H_50, ~_BIT4, _BIT4);
+ 299   1          CAdjustSyncProcessorMeasureStart();
+ 300   1      
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 6   
+
+ 301   1          // V016 System Patch Note (15) Modify 20100824 Start
+ 302   1          // Patch Reason : Fix IHCount=0 issue
+ 303   1          if(CScalerGetBit(_MEAS_HS_PERIOD_H_52, _BIT7) == _BIT7) // Auto Measure Enable
+ 304   1          {
+ 305   2              // We should wait 1 frame due to the measured result of next frame.
+ 306   2              if(CScalerGetBit(_SYNC_SELECT_47, _BIT1) == 0x00)   // Measure Input Active Region
+ 307   2              {
+ 308   3                  CTimerWaitForEvent(_EVENT_IVS);
+ 309   3                  CTimerWaitForEvent(_EVENT_IVS);
+ 310   3              }
+ 311   2              else         // Measure Display Active Region
+ 312   2              {
+ 313   3                  CTimerWaitForEvent(_EVENT_DVS);
+ 314   3                  CTimerWaitForEvent(_EVENT_DVS);
+ 315   3              }
+ 316   2          }
+ 317   1          // // V016 System Patch Note (15) Modify 20100824 End
+ 318   1      
+ 319   1          if(CTimerPollingEventProc(60, CMiscModeMeasurePollingEvent))
+ 320   1          {
+ 321   2              CScalerSetBit(_MEAS_HS_PERIOD_H_52, ~_BIT6, _BIT6);
+ 322   2              CScalerSetByte(_MEAS_ACTIVE_REGION_59, 0x00);
+ 323   2      
+ 324   2              pData[0] = 0;
+ 325   2              CScalerRead(_MEAS_ACTIVE_REGION_59, 3, &pData[1], _NON_AUTOINC);
+ 326   2      
+ 327   2              aclkcnt = ((DWORD *)pData)[0];
+ 328   2      
+ 329   2              // V016 System Patch Note (15) Modify 20100824 Start
+ 330   2              // Patch Reason : Fix IHCount=0 issue
+ 331   2              /*
+ 332   2              CScalerSetBit(_MEAS_HS_PERIOD_H_52, ~(_BIT7 | _BIT5), 0x00);
+ 333   2              */
+ 334   2              // V016 System Patch Note (15) Modify 20100824 End
+ 335   2      
+ 336   2              CScalerPageSelect(_PAGE1);
+ 337   2              CScalerRead(_P1_DPLL_M_BF, 1, &mcode, _NON_AUTOINC);
+ 338   2              mcode += 2;
+ 339   2      
+ 340   2              CScalerRead(_P1_DPLL_N_C0, 1, &div, _NON_AUTOINC);
+ 341   2              div = 0x01 << ((div & 0x30) >> 4);
+ 342   2      
+ 343   2              offset = (DWORD)32768 * div * 2 * _DPLL_N_CODE * stDisplayInfo.DHTotal / aclkcnt * stDisplayInfo.D
+             -VHeight / mcode;
+ 344   2      
+ 345   2              offset = 32768 - offset;
+ 346   2      
+ 347   2      //        CScalerSetBit(_SYNC_SELECT_47, ~(_BIT1 | _BIT0), _BIT1);
+ 348   2      
+ 349   2          }
+ 350   1          else
+ 351   1          {
+ 352   2              offset = 0xffff;
+ 353   2          }
+ 354   1      
+ 355   1          CScalerSetBit(_STABLE_PERIOD_H_50, ~_BIT4, 0x00);
+ 356   1          return (WORD)offset;
+ 357   1      }
+ 358          
+ 359          //--------------------------------------------------
+ 360          // Description  : Apply Dclk frequency and get the overflow/underflow information
+ 361          // Input Value  : Dclk offset
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 7   
+
+ 362          // Output Value : Return _FALSE if there is no timing change
+ 363          //--------------------------------------------------
+ 364          bit CFrameSyncTestSync(WORD usOffset)
+ 365          {
+ 366   1          if((GET_INPUTSOURCE_TYPE() == _SOURCE_DVI) || (GET_INPUTSOURCE_TYPE() == _SOURCE_HDMI))
+ 367   1          {
+ 368   2              CScalerPageSelect(_PAGE2);
+ 369   2              if(CScalerGetBit(_P2_POWER_ON_OFF_CTRL_A7, _BIT7) == _BIT7)
+ 370   2              {
+ 371   3                  CScalerSetBit(_SYNC_SELECT_47, ~_BIT0, _BIT0);  // Digital Mode Measure
+ 372   3              }
+ 373   2          }
+ 374   1          else
+ 375   1          {
+ 376   2              CScalerSetBit(_SYNC_SELECT_47, ~_BIT0, 0x00);       // Analog Mode Measure
+ 377   2          }
+ 378   1      
+ 379   1          CAdjustSyncProcessorMeasureStart();
+ 380   1      
+ 381   1          // Apply Dclk frequency setting
+ 382   1          CAdjustDclkOffset(usOffset);
+ 383   1      
+ 384   1          CScalerSetByte(_STATUS0_02, 0x00);                      // Clear Status
+ 385   1      
+ 386   1          CTimerWaitForEvent(_EVENT_DVS);                         // Wait for Frame End
+ 387   1      
+ 388   1          CTimerWaitForEvent(_EVENT_DVS);                         // Wait for Frame End
+ 389   1      
+ 390   1          // Issac added for interlaced mode 2006-08-29
+ 391   1          CTimerWaitForEvent(_EVENT_DVS);                         // Wait for Frame End
+ 392   1      
+ 393   1          // V016 System Patch Note (15) Modify 20100824 Start
+ 394   1          // Patch Reason : Fix IHCount=0 issue
+ 395   1          /*
+ 396   1          if(CModeIsChange())
+ 397   1          {
+ 398   1              return _TRUE;
+ 399   1          }
+ 400   1          */
+ 401   1          if(CTimerPollingEventProc(60, CMiscModeMeasurePollingEvent))
+ 402   1          {
+ 403   2              if(CModeIsChange())
+ 404   2              {
+ 405   3                  return _TRUE;
+ 406   3              }
+ 407   2          }
+ 408   1          // V016 System Patch Note (15) Modify 20100824 End
+ 409   1      
+ 410   1          CScalerRead(_STATUS0_02, 1, pData, _NON_AUTOINC); // Read status
+ 411   1      
+ 412   1          // Input timing changed
+ 413   1          if(((pData[0] & 0x20) == 0x20) || ((pData[0] & 0x40) == 0x40))
+ 414   1          {
+ 415   2              return _TRUE;
+ 416   2          }
+ 417   1      
+ 418   1          // Save underflow/overflow information into pData[0]
+ 419   1          pData[0] &= 0x03;
+ 420   1      
+ 421   1          return _FALSE;                                          // Success
+ 422   1      }
+ 423          
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 8   
+
+ 424          //--------------------------------------------------
+ 425          // Description  : Adjust Dclk offset to meet frame sync
+ 426          // Input Value  : None
+ 427          // Output Value : Return 0 if sucess
+ 428          //--------------------------------------------------
+ 429          BYTE CFrameSyncDo(void)
+ 430          {
+ 431   1          WORD buffer, delta;
+ 432   1          BYTE fine, result = 0;
+ 433   1      
+ 434   1          // Read the DCLK offset
+ 435   1          CScalerPageSelect(_PAGE1);
+ 436   1          CScalerRead(_P1_DCLK_FINE_TUNE_OFFSET_MSB_C4, 2, pData, _AUTOINC);
+ 437   1          buffer = (((WORD)pData[0] & 0x0f) << 8) | pData[1];
+ 438   1      
+ 439   1          // Disable the Fixed DVTOTAL & Last Line Length Fucntion
+ 440   1          CScalerSetBit(_P1_EVEN_FIXED_LAST_LINE_CTRL_CA, ~_BIT1, 0x00);
+ 441   1      
+ 442   1          // Disable spread spectrum
+ 443   1          CAdjustDclkSpreadSpectrumRange(0);
+ 444   1      
+ 445   1          // Fast Framesync method
+ 446   1          delta = CFrameSyncFastDo();
+ 447   1      
+ 448   1          if(CFrameSyncTestSync(delta))
+ 449   1          {
+ 450   2              return 2;
+ 451   2          }
+ 452   1      
+ 453   1          if(pData[0] == 0)
+ 454   1          {
+ 455   2              result |= _BIT0;
+ 456   2      
+ 457   2              if(CFrameSyncTestSync(delta + _OFFSET_STEP))
+ 458   2              {
+ 459   3                  return 2;
+ 460   3              }
+ 461   2              if(pData[0] == 0)
+ 462   2              {
+ 463   3                  result |= _BIT1;
+ 464   3              }
+ 465   2      
+ 466   2              if(CFrameSyncTestSync(delta - _OFFSET_STEP))
+ 467   2              {
+ 468   3                  return 2;
+ 469   3              }
+ 470   2              if(pData[0] == 0)
+ 471   2              {
+ 472   3                  result |= _BIT2;
+ 473   3              }
+ 474   2      
+ 475   2              if(result == (_BIT0 | _BIT1))
+ 476   2              {
+ 477   3                  delta += _OFFSET_STEP / 2;
+ 478   3              }
+ 479   2              else if(result == (_BIT0 | _BIT2))
+ 480   2              {
+ 481   3                  delta -= _OFFSET_STEP / 2;
+ 482   3              }
+ 483   2          }
+ 484   1      
+ 485   1          if(result == 0)     // Fast search fail, do iteration search
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 9   
+
+ 486   1          {
+ 487   2              // Apply Dclk frequency setting
+ 488   2              CAdjustDclkOffset(buffer);
+ 489   2      
+ 490   2              // Search first satisfied DCLK setting for frame-sync
+ 491   2              result = 0x00;
+ 492   2              fine = _SEARCH_TIME;
+ 493   2              do
+ 494   2              {
+ 495   3                  if(CFrameSyncTestSync(buffer))
+ 496   3                  {
+ 497   4                      return 2;
+ 498   4                  }
+ 499   3      
+ 500   3                  if(pData[0] == 0)
+ 501   3                  {
+ 502   4                      break;
+ 503   4                  }
+ 504   3      
+ 505   3                  if(pData[0] & 0x02)
+ 506   3                  {
+ 507   4                      buffer -= (result & 0x01) ? (_OFFSET_STEP / 2) : _OFFSET_STEP;
+ 508   4                  }
+ 509   3                  else
+ 510   3                  {
+ 511   4                      buffer += (result & 0x02) ? (_OFFSET_STEP / 2) : _OFFSET_STEP;
+ 512   4                  }
+ 513   3      
+ 514   3                  result = pData[0];
+ 515   3              }
+ 516   2              while(--fine);
+ 517   2      
+ 518   2              if(fine == 0x00)
+ 519   2              {
+ 520   3                  return 1;
+ 521   3              }
+ 522   2      
+ 523   2              // If default offset is OK....
+ 524   2              if(result == 0x00)
+ 525   2              {
+ 526   3                  if(CFrameSyncTestSync(buffer + _OFFSET_STEP))
+ 527   3                  {
+ 528   4                      return 2;
+ 529   4                  }
+ 530   3                  result = pData[0] ? pData[0] : 0x01;
+ 531   3              }
+ 532   2      
+ 533   2              // Search most satisfied DCLK setting for frame-sync
+ 534   2              delta = buffer;
+ 535   2              fine = 4;
+ 536   2              do
+ 537   2              {
+ 538   3                  WORD temp = (result & 0x01) ? delta + (_OFFSET_STEP / 2) : delta - (_OFFSET_STEP / 2);
+ 539   3      
+ 540   3                  if(CFrameSyncTestSync(temp))
+ 541   3                  {
+ 542   4                      return 2;
+ 543   4                  }
+ 544   3      
+ 545   3                  if(pData[0])
+ 546   3                  {
+ 547   4                      break;
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 10  
+
+ 548   4                  }
+ 549   3      
+ 550   3                  delta = temp;
+ 551   3              }
+ 552   2              while(--fine);
+ 553   2      
+ 554   2              delta = (buffer + delta) >> 1;
+ 555   2          }
+ 556   1      
+ 557   1          if(!CFrameSyncLastLineFinetune(&delta))
+ 558   1          {
+ 559   2              return 2;
+ 560   2          }
+ 561   1      
+ 562   1          result = CFrameSyncSpreadSpectrumFinetune(&delta);
+ 563   1          if(result != 0)
+ 564   1          {
+ 565   2              return result;
+ 566   2          }
+ 567   1      
+ 568   1          SET_FRAMESYNCSTATUS();
+ 569   1      
+ 570   1          return 0;
+ 571   1      }
+ 572          
+ 573          //--------------------------------------------------
+ 574          // Description  : Modify Display Vertical Start Position
+ 575          // Input Value  : Enable or Disable
+ 576          // Output Value : None
+ 577          //--------------------------------------------------
+ 578          void CFrameSyncModifyDVStartPos(bit enable)
+ 579          {
+ 580   1          if(enable)
+ 581   1          {
+ 582   2              stDisplayInfo.DVStartPos = (DWORD)35 * 2 * stDisplayInfo.DVHeight / stModeInfo.IVHeight / 10;
+ 583   2              stDisplayInfo.DVStartPos = ((stDisplayInfo.DVStartPos >> 1) + (stDisplayInfo.DVStartPos & 0x01));
+ 584   2              if(stDisplayInfo.DVStartPos < 6)
+ 585   2              {
+ 586   3                  stDisplayInfo.DVStartPos = 6;
+ 587   3              }
+ 588   2          }
+ 589   1          else
+ 590   1          {
+ 591   2              stDisplayInfo.DVStartPos = (LOBYTE(_PANEL_DV_START));
+ 592   2          }
+ 593   1      }
+ 594          
+ 595          #if((_TMDS_SUPPORT == _ON) || (_YPBPR_SUPPORT == _ON) || (_VIDEO_SUPPORT == _ON) )
+ 596          //--------------------------------------------------
+ 597          // Description  : Set Frame Sync Fine Tune for Even/Odd field
+ 598          // Input Value  : Even field before or after odd filed
+ 599          // Output Value : None
+ 600          //--------------------------------------------------
+ 601          void CFrameSyncFineTune(bit field)
+ 602          {
+ 603   1          WORD ustemp;
+ 604   1      
+ 605   1          CScalerRead(_IV_DV_DELAY_CLK_ODD_41, LENGTH(1), pData, _NON_AUTOINC);
+ 606   1          ustemp = (WORD)pData[0] * 16 + 16;
+ 607   1      
+ 608   1          if(field)   // Even field before Odd field
+ 609   1          {
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 11  
+
+ 610   2              if(ustemp > (stModeInfo.IHTotal / 2))
+ 611   2              {
+ 612   3                  ustemp -= stModeInfo.IHTotal / 2;
+ 613   3                  CScalerSetByte(_IV_DV_DELAY_CLK_EVEN_42, (ustemp - 16) / 16);
+ 614   3              }
+ 615   2              else
+ 616   2              {
+ 617   3                  CScalerSetByte(_IPV_ACT_STA_L_19, CScalerGetBit(_IPV_ACT_STA_L_19, 0xff) + 1);
+ 618   3                  ustemp += stModeInfo.IHTotal;
+ 619   3                  CScalerSetByte(_IV_DV_DELAY_CLK_ODD_41, (ustemp - 16) / 16);
+ 620   3                  ustemp -= stModeInfo.IHTotal / 2;
+ 621   3                  CScalerSetByte(_IV_DV_DELAY_CLK_EVEN_42, (ustemp - 16) / 16);
+ 622   3      
+ 623   3      // V012 Modify 20100316 Start
+ 624   3      // V012 Patch Note (2) : Overscan function update.
+ 625   3      #if(_OVERSCAN_SUPPORT == _ON)
+ 626   3                  g_usCaptureStartV++;
+ 627   3      #endif
+ 628   3      // V012 Modify 20100316 End
+ 629   3              }
+ 630   2          }
+ 631   1          else    // Even field after Odd field
+ 632   1          {
+ 633   2              ustemp += stModeInfo.IHTotal / 2;
+ 634   2              CScalerSetByte(_IV_DV_DELAY_CLK_EVEN_42, ((ustemp + 8) / 16) - 1);
+ 635   2          }
+ 636   1      
+ 637   1          CScalerSetBit(_FS_DELAY_FINE_TUNING_43, ~(_BIT1), _BIT1);
+ 638   1      }
+ 639          #endif  // End of #if((_TMDS_SUPPORT == _ON) || (_YPBPR_SUPPORT == _ON) || (_VIDEO_SUPPORT == _ON) )
+ 640          
+ 641          // V013 VGA Patch Note (16) Modify 20100422 Start
+ 642          // Patch Reason : Add fineTune display position for VGA interlace mode.
+ 643          //--------------------------------------------------
+ 644          // Description  : Set Frame Sync Fine Tune for Even/Odd field For Analog
+ 645          // Input Value  : Even field before or after odd filed
+ 646          // Output Value : None
+ 647          //--------------------------------------------------
+ 648          void CFrameSyncAnalogFineTune(void)
+ 649          {
+ 650   1          BYTE ucModeIndex = 0;
+ 651   1      
+ 652   1          if(GET_INPUTSOURCE_TYPE() == _SOURCE_VGA)
+ 653   1          {
+ 654   2              if(GET_MODE_SEARCH_TYPE() == _PRESET_MODE_TYPE)
+ 655   2              {
+ 656   3                  ucModeIndex = stModeInfo.ModeCurr;
+ 657   3              }
+ 658   2              else if(GET_MODE_SEARCH_TYPE() == _USER_MODE_TYPE)
+ 659   2              {
+ 660   3                  CEepromLoadUserFIFOModeData((stModeInfo.ModeCurr / 4), pData);
+ 661   3      
+ 662   3                  ucModeIndex = pData[(stModeInfo.ModeCurr % 4) * 4];
+ 663   3              }
+ 664   2      
+ 665   2              switch(ucModeIndex)
+ 666   2              {
+ 667   3                  case _MODE_1440x480i_60HZ:
+ 668   3                  case _MODE_1440x576i_50Hz:
+ 669   3                  case _MODE_1920x1080i_50Hz:
+ 670   3                  case _MODE_1920x1080i_50HZ_2:
+ 671   3                  case _MODE_1920x1080i_60HZ:
+C51 COMPILER V8.02   FRAMESYNC                                                             03/05/2012 13:24:15 PAGE 12  
+
+ 672   3      
+ 673   3                      CScalerSetBit(_SCALE_CTRL_32, ~_BIT7, _BIT7);
+ 674   3                      CScalerSetBit(_VGIP_ODD_CTRL_13, ~_BIT0, _BIT0);
+ 675   3                      CFrameSyncFineTune(_ODD);
+ 676   3                      break;
+ 677   3      
+ 678   3                  default:
+ 679   3                      break;
+ 680   3              }
+ 681   2          }
+ 682   1      #if(_YPBPR_SUPPORT == _ON)
+ 683   1          else if(GET_INPUTSOURCE_TYPE() == _SOURCE_YPBPR)
+ 684   1          {
+ 685   2              switch(stModeInfo.ModeCurr)
+ 686   2              {
+ 687   3                  case _VIDEO_1440x576i_50HZ: // 576i
+ 688   3                  case _VIDEO_1440x480i_60HZ: // 480i
+ 689   3                  case _VIDEO_1920x1080i_50HZ: // 1080i 50Hz
+ 690   3                  case _VIDEO_1920x1080i_60HZ: // 1080i 60Hz
+ 691   3                  case _VIDEO_1920x1080i_50HZ_2: // 1080i 50Hz_2
+ 692   3      
+ 693   3                      CScalerSetBit(_SCALE_CTRL_32, ~_BIT7, _BIT7);
+ 694   3                      CScalerSetBit(_VGIP_ODD_CTRL_13, ~_BIT0, _BIT0);
+ 695   3                      CFrameSyncFineTune(_ODD);
+ 696   3                      break;
+ 697   3      
+ 698   3                  default:
+ 699   3                      break;
+ 700   3              }
+ 701   2          }
+ 702   1      #endif
+ 703   1      }
+ 704          // V013 VGA Patch Note (16) Modify 20100422 End
+ 705          
+ 706          #endif  // End of #if(_SCALER_SERIES_TYPE == _RTD2472D_SERIES)
+ 707          
+ 708          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1452    ----
+   CONSTANT SIZE    =     16    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      25
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

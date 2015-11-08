@@ -1,0 +1,936 @@
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE INT
+OBJECT MODULE PLACED IN .\Output\Int.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE Common\Code\Int.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_RTD2472D_DEMO_BOARD) P
+                    -RINT(.\Output\Int.lst) OBJECT(.\Output\Int.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : Int.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #include "Common\Header\Include.h"
+  21          
+  22          
+  23          #if(_DP_SUPPORT == _ON)
+              //--------------------------------------------------
+              // INT0 Interrupt, DP use
+              //--------------------------------------------------
+              void EXINT0(void) interrupt 0
+              {
+              
+              #if(_DP_PHY_CTS_AUTO == _ON)
+                  bit bTEST_PRBS7_Flag = 0;
+              #endif
+              
+                  EA = 0;
+              
+                  // Backup Status
+                  CScalerReadByteInt(_PAGE_SELECT_9F, &g_ucRegPageBackUp);
+                  g_ucRegIntBackUp = MCU_SCA_INF_CTRL_FFF3;
+              
+                  // Int defer protection
+                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                  CScalerSetByteInt(_PC_AUX_MODE_SET_D0, 0xE1);
+              
+                  EA = 1;
+              
+                  // Backup Status
+                  CScalerReadByteInt(_PC_DPCD_ACCESS_PORT_H_C1, &g_ucRegPortBackUp[0]);
+                  CScalerReadByteInt(_PC_DPCD_ACCESS_PORT_M_C2, &g_ucRegPortBackUp[1]);
+                  CScalerReadByteInt(_PC_DPCD_ACCESS_PORT_L_C3, &g_ucRegPortBackUp[2]);
+                  CScalerReadByteInt(_PC_DP_ACCESS_PORT_B3, &g_ucRegPortBackUp[3]);
+              
+                  MCU_SCA_INF_CTRL_FFF3 &= 0xDF;
+              
+                  // Clear IRQ Flag
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 2   
+
+                  MCU_IRQ_STATUS_FF00 = 0x00;
+                  CScalerSetByteInt(_PC_DP_ACCESS_PORT_B3, 0xCC);
+                  CScalerSetByteInt(_PC_DP_DATA_PORT_B4, 0x80);
+                  CScalerSetByteInt(_PC_AUX_IRQ_STATUS_DC, 0xFF);
+              
+                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_H_C1, 0x00);
+                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_M_C2, 0x01);
+                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x02);
+                  CScalerReadByteInt(_PC_DPCD_DATA_PORT_L_C4, &g_ucDpTPStatus);
+              
+                  if((g_bDpFakeLT == _FALSE) && (g_bFakeTP1Pass != _TRUE) && (g_bFakeTP2Pass != _TRUE))
+                  {
+                      switch(g_ucDpTPStatus & 0x03)
+                      {
+                          case _TRAINING_PATTERN1:
+              
+                              if(g_ucDisplayPortLtPreStatus != _TRAINING_PATTERN1_PASS) // for AMD Card DOS Mode bug
+                              {
+                                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_H_C1, 0x00);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_M_C2, 0x02);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x02);
+                                  CScalerSetByteInt(_PC_DPCD_DATA_PORT_L_C4, 0x00);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x03);
+                                  CScalerSetByteInt(_PC_DPCD_DATA_PORT_L_C4, 0x00);
+              
+                                  g_ucLane01Status = 0;
+                                  g_ucLane23Status = 0;
+              
+                                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEB);
+              
+                                  /*
+                                  if(GET_INPUT_PORT(g_ucSearchIndex) == _D0_INPUT_PORT)
+                                  {
+                                      CScalerSetByteInt(_PB_DP_2D_SWITCH_B5, 0x02);
+                                  }
+                                  else if(GET_INPUT_PORT(g_ucSearchIndex) == _D1_INPUT_PORT)
+                                  {
+                                      CScalerSetByteInt(_PB_DP_2D_SWITCH_B5, 0x06);
+                                  }
+                                  */
+              
+              #if (_D0_INPUT_PORT_TYPE == _D0_DP_PORT)
+                                      CScalerSetByteInt(_PB_DP_2D_SWITCH_B5, 0x02);
+              #elif(_D1_INPUT_PORT_TYPE == _D1_DP_PORT)
+                                      CScalerSetByteInt(_PB_DP_2D_SWITCH_B5, 0x06);
+              #endif
+              
+                                  // Turn off OOBS
+                                  CScalerSetByteInt(_PB_DP_AUX_00_B3, 0x80);
+              
+                                  // Error Counter
+                                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                  CScalerSetByteInt(_PC_DP_ACCESS_PORT_B3, 0xB0);
+                                  CScalerSetByteInt(_PC_DP_DATA_PORT_B4, 0x0C);   // stop error count
+                                  CScalerSetByteInt(_PC_DP_DATA_PORT_B4, 0x8C);   // start error count
+              
+                                  CDpTrainPattern1();
+                              }
+              
+                              break;
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 3   
+
+              
+                          case _TRAINING_PATTERN2:
+              
+                              if(g_ucDisplayPortLtPreStatus != _TRAINING_PATTERN2_PASS)     // for AMD Card DOS Mode bug
+                              {
+                                  CDpTrainPattern2();
+                              }
+              
+                              break;
+              
+                          case _TRAINING_PATTERN_END:
+              
+                              if( g_ucDisplayPortLtPreStatus == _TRAINING_PATTERN2_PASS )
+                              {
+                                  CDpTrainPatternEnd();
+                                  g_bFakeTPEndPass = _FALSE;
+                                  g_bDpSearchTimesReset = 1;
+                                  ucModeControl &= ~_BIT6; // CLR HPD
+                              }
+                              else    // Training_Pattern_None
+                              {
+                                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_H_C1, 0x06);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_M_C2, 0x80);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x0c);
+                                  CScalerReadByteInt(_PC_DPCD_DATA_PORT_L_C4, &g_ucDpTPStatus);
+              
+                                  if(g_ucDpTPStatus != 0x00)
+                                  {
+                                      if(g_bFakeTPEndPass == _TRUE)
+                                      {
+                                              g_bHDCPFail = _TRUE;
+                                      }
+              
+                                      // Auto Set DPCD
+                                      CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                      CScalerSetByteInt(_PC_DP_HDCP_IRQ_E3, 0x03);
+                                  }
+              
+                                  CDpTrainPatternNone();
+              
+              #if (_DP_PHY_CTS_AUTO == _ON)
+                                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_H_C1, 0x00);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_M_C2, 0x01);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x02);
+                                  CScalerReadByteInt(_PC_DPCD_DATA_PORT_L_C4, &g_ucDpTPStatus);
+                                  if((g_ucDpTPStatus&0x0c) == 0x0c) //PRBS7 start
+                                  {
+                                      BYTE buf = 0;
+                                      bLED1 = 0;
+                                      bLED2 = 1;
+                                      CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEB);
+                                      CScalerSetByteInt(_PB_DP_PWR_CTL_B4, 0xff);
+              
+                                      for (buf = 0; buf <= 20; buf++)
+                                      {
+                                          _nop_();
+                                      }
+              
+                                      CScalerSetByteInt(_PB_DIG03_E3, 0x01);
+                                      CScalerSetByteInt(_PB_DIG02_E2, 0x84);
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 4   
+
+                                      CScalerSetByteInt(_PB_DIG03_E3, 0x09);
+              
+                                      CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                      CScalerSetByteInt(_PC_DP_CTL_A1, 0x1C);
+                                      CScalerSetByteInt(_PC_DP_ACCESS_PORT_B3, 0xB0);
+                                      CScalerSetByteInt(_PC_DP_DATA_PORT_B4, 0x90);
+                                      CScalerSetByteInt(_PC_DP_ACCESS_PORT_B3, 0xB0);
+                                      CScalerSetByteInt(_PC_DP_DATA_PORT_B4, 0x10);
+                                      CScalerSetByteInt(_PC_DP_ACCESS_PORT_B3, 0xB0);
+                                      CScalerSetByteInt(_PC_DP_DATA_PORT_B4, 0x90);
+                                      bTEST_PRBS7_Flag = 1;
+                                  }
+                                  else if(((g_ucDpTPStatus&0x0c) == 0x0) && (bTEST_PRBS7_Flag == 1)) //PRBS7 end
+                                  {
+                                      bTEST_PRBS7_Flag = 0;
+              
+                                      CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                      CScalerSetByteInt(_PC_DP_ACCESS_PORT_B3, 0xB0);
+                                      CScalerSetByteInt(_PC_DP_DATA_PORT_B4, 0x10);
+                                      CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEB);
+                                      CScalerSetByteInt(_PB_DIG03_E3, 0x01);
+                                      CScalerSetByteInt(_PB_DIG02_E2, 0x00);
+                                  }
+              #endif // End of #if (_DP_PHY_CTS_AUTO == _ON)
+                              }
+                              break;
+              
+                          default:
+                              break;
+                      }
+                  }
+                  else //20090203 wuzanne for autosearch No.007 g_bDpFakeLT == 1(fake link training)
+                  {
+                      switch(g_ucDpTPStatus & 0x03)
+                      {
+                          case _TRAINING_PATTERN1:
+              
+                              if( g_ucDisplayPortLtPreStatus != _TRAINING_PATTERN1_PASS )     // for AMD Card DOS Mode b
+             -ug
+                              {
+                                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_H_C1, 0x00);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_M_C2, 0x02);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x02);
+                                  CScalerSetByteInt(_PC_DPCD_DATA_PORT_L_C4, 0x00);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x03);
+                                  CScalerSetByteInt(_PC_DPCD_DATA_PORT_L_C4, 0x00);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x04);
+                                  CScalerSetByteInt(_PC_DPCD_DATA_PORT_L_C4, 0x80);
+              
+                                  g_ucLane01Status = 0;
+                                  g_ucLane23Status = 0;
+              
+                                  CDpFakeTrainPattern1();
+                              }
+              
+                              break;
+              
+                          case _TRAINING_PATTERN2:
+              
+                              if( g_ucDisplayPortLtPreStatus != _TRAINING_PATTERN2_PASS )     // for AMD Card DOS Mode b
+             -ug
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 5   
+
+                              {
+                                  g_bFakeTP1Pass = 0;
+                                  CDpFakeTrainPattern2();
+                              }
+                              break;
+              
+                          case _TRAINING_PATTERN_END:
+              
+                              if( g_ucDisplayPortLtPreStatus == _TRAINING_PATTERN2_PASS )
+                              {
+                                  g_bFakeTP2Pass = 0;
+                                  CDpFakeTrainPatternEnd();
+                                  g_bFakeTPEndPass = _TRUE;
+                                  g_bDpSearchTimesReset = 1;
+                                  ucModeControl &= ~_BIT6; // CLR HPD
+                              }
+                              else    //  Training_Pattern_None
+                              {
+                                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_H_C1, 0x06);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_M_C2, 0x80);
+                                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, 0x0c);
+                                  CScalerReadByteInt(_PC_DPCD_DATA_PORT_L_C4, &g_ucDpTPStatus);
+              
+                                  if(g_ucDpTPStatus != 0x00)
+                                  {
+                                      g_bHDCPFail = _TRUE;
+                                  }
+              
+                                  CDpTrainPatternNone();
+                              }
+                              break;
+              
+                          default:
+                              break;
+                      }
+                  }
+              
+                  //  Restore Status
+                  CScalerSetByteInt(_PAGE_SELECT_9F, _PAGEC);
+                  CScalerSetByteInt(_PC_AUX_MODE_SET_D0, 0xE3);
+                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_H_C1, g_ucRegPortBackUp[0]);
+                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_M_C2, g_ucRegPortBackUp[1]);
+                  CScalerSetByteInt(_PC_DPCD_ACCESS_PORT_L_C3, g_ucRegPortBackUp[2]);
+              
+                  CScalerSetByteInt(_PC_DP_ACCESS_PORT_B3, g_ucRegPortBackUp[3]);
+                  CScalerSetByteInt(_PAGE_SELECT_9F, g_ucRegPageBackUp);
+                  MCU_SCA_INF_CTRL_FFF3 = g_ucRegIntBackUp;
+              
+                  MCU_SCA_INF_ADDR_FFF4 = g_ucRegAddrBackUp;
+              }
+              #endif //End of #if(_DP_SUPPORT == _ON)
+ 291          
+ 292          //--------------------------------------------------
+ 293          // Timer0 Interrupt (1ms)
+ 294          //--------------------------------------------------
+ 295          void IntProcTimer0(void) interrupt 1
+ 296          {
+ 297   1          TR0 = _ON;
+ 298   1          TL0 = _TIMER0_COUNT_LBYTE;
+ 299   1          TH0 = _TIMER0_COUNT_HBYTE;
+ 300   1      
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 6   
+
+ 301   1      #if(_MCU_TYPE == _REALTEK_EMBEDDED)
+ 302   1      if(bWatchDogResetCtrl==_FALSE)
+ 303   1         MCU_WATCHDOG_TIMER_FFEA |= 0x40;
+ 304   1      
+ 305   1      #endif
+ 306   1      
+ 307   1          bNotifyTimer0Int = _TRUE;
+ 308   1      
+ 309   1          if(--ucTimer0Cnt)
+ 310   1          {
+ 311   2      
+ 312   2      #if(_DEBUG_TOOL == _ISP_FOR_EMBEDDED)
+ 313   2              CDebugCheckTimeOut();
+ 314   2      #endif
+ 315   2      
+ 316   2          }
+ 317   1          else
+ 318   1          {
+ 319   2          #if _DEBUG_MESSAGE_SUPPORT
+ 320   2      //      CDebugMessage("1ms", 0);
+ 321   2          #endif
+ 322   2              if(bTimer0Ctrl == _FALSE)
+ 323   2              {
+ 324   3                  CTimerDecreaseTimerCnt();
+ 325   3              }
+ 326   2      
+ 327   2              ucTimer0Cnt = 10;
+ 328   2              if(bTimer01minCtrl==_FALSE)     
+ 329   2                      ucTimer0Cnt3--; 
+ 330   2              if((bAgeModeOn&&bTimerAgeModeCtrl)||((bTimerAgeModeCtrl==_FALSE )&&(bAgeModeOn==_FALSE)))
+ 331   2                      
+ 332   2                      ucTimer0Cnt1--;
+ 333   2      #if(_DCR_MODE == _DCR_TYPE_3)
+                      g_ucDcrTimer += 1;          // 10msec
+              #endif
+ 336   2      
+ 337   2          }
+ 338   1      if(ucTimer0Cnt1==0)
+ 339   1      {
+ 340   2                      
+ 341   2              if(bAgeModeOn)
+ 342   2                      {
+ 343   3                      ucTimer0Cnt1=200;
+ 344   3                      if(bAgeModeWhiteFlag)
+ 345   3                              {
+ 346   4                              CScalerSetByte(0x6D, 0x00);
+ 347   4                              CScalerSetByte(0x6D, 0x00);
+ 348   4                              CScalerSetByte(0x6D, 0x00);                     
+ 349   4      
+ 350   4                              }
+ 351   3                      else
+ 352   3                              {
+ 353   4      
+ 354   4                              CScalerSetByte(0x6D, 0xFF);
+ 355   4                              CScalerSetByte(0x6D, 0xFF);
+ 356   4                              CScalerSetByte(0x6D, 0xFF);                     
+ 357   4      
+ 358   4                              }
+ 359   3                      bAgeModeWhiteFlag=!bAgeModeWhiteFlag;
+ 360   3                      }
+ 361   2              if(bTimerAgeModeCtrl==_FALSE)
+ 362   2                      {
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 7   
+
+ 363   3                      
+ 364   3                      bTimerAgeModeCtrl=_TRUE;
+ 365   3                      }
+ 366   2      
+ 367   2      
+ 368   2      }
+ 369   1              
+ 370   1      if(ucTimer0Cnt3==0)     
+ 371   1              {
+ 372   2            
+ 373   2              ucTimer0Cnt3=100;
+ 374   2              
+ 375   2              ucTimer0Cnt2--;
+ 376   2                      
+ 377   2              }
+ 378   1      
+ 379   1              if(ucTimer0Cnt2==0)
+ 380   1                      {
+ 381   2                      ucTimer0Cnt2=30;//sjp for power bug 20110804    
+ 382   2                      if(bTimer01minCtrl==_FALSE)     
+ 383   2                              bTimer01minCtrl =_TRUE;
+ 384   2              
+ 385   2                      }
+ 386   1              
+ 387   1      }
+ 388          
+ 389          #if(_DEBUG_TOOL == _RS232)
+              //--------------------------------------------------------------------------------------------------------
+             ------------
+              // UART interrupt function (4)
+              //--------------------------------------------------------------------------------------------------------
+             ------------
+              void IntProcUart(void)  interrupt 4
+              {
+                  if(TI)
+                  {
+                      TI = 0;
+                  }
+              
+                  if(RI)
+                  {
+                      if(!bUartCommandStart)
+                      {
+                          pUartData[0] = SBUF;
+                          switch(pUartData[0])
+                          {
+                              case 0x5a:
+                              case 0x5b:
+                              case 0x5c:
+                              case 0x5d:
+                              case 0x41:
+                                  bUartCommandStart = _TRUE;
+                                  ucUartCommandNum = 1;
+                                  break;
+                              default:
+                                  bUartCommandStart = _FALSE;
+                                  break;
+                          }
+                      }
+                      else
+                      {
+                          if(ucUartCommandNum < 5)
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 8   
+
+                          {
+                              pUartData[ucUartCommandNum] = SBUF;
+                              ucUartCommandNum++;
+                              if(ucUartCommandNum == 5)
+                              {
+                                  bUartCommandStart = _FALSE;
+                                  bUartCommandSuccess = _TRUE;
+                                  ucUartCommandNum = 1;
+                              }
+                          }
+                      }
+              
+                      RI = 0;
+                  }
+              }
+              #endif  // End of #if(_DEBUG_TOOL == _RS232)
+ 439          
+ 440          
+ 441          //--------------------------------------------------------------------------------------------------------
+             ------------
+ 442          // UART interrupt function (2)
+ 443          //--------------------------------------------------------------------------------------------------------
+             ------------
+ 444          #if(_DEBUG_TOOL == _ISP_FOR_RTD2120)
+              void IntProcDdcci(void)  interrupt 2
+              {
+                  BYTE tempbuf;
+              
+                  if(!bRunCommand)
+                  {
+                      tempbuf = MCU_I2C_STATUS_FF2B;
+              #if(_DDCCI_SUPPORT == _ON)
+              
+                      if(tempbuf & 0x08)
+                      {
+                          WORD i = 0xffff;
+                          if(GET_INPUTSOURCE_TYPE() == _SOURCE_VGA)
+                          {
+                              do
+                              {
+                                  Delay5us();
+                              }while (bDDCSCL && --i);
+                          }
+                          else
+                          {
+                              do
+                              {
+                                  Delay5us();
+                              }while (bDDCSCLDVI && --i);
+                          }
+              
+                          if( g_ucDdcciTxCount == (g_ucDdcciTxBuf[_DDC_LENGTH]&0x7f)+2 )
+                          {
+                              CDDC2Bi_InitTx();
+                          }
+                          else
+                          {
+                              g_ucDdcciTxCount++;
+                              MCU_I2C_DATA_OUT_FF2A = g_ucDdcciTxBuf[g_ucDdcciTxCount];
+                              MCU_I2C_DATA_OUT_FF2A = g_ucDdcciTxBuf[g_ucDdcciTxCount];
+                          }
+                      }
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 9   
+
+                      if(tempbuf & 0x01)
+                      {
+                          g_ucDdcciCommandNumber = 0;
+                          g_RxStatus = _DDC2B_CLEAR;
+                      }
+              
+                      if(tempbuf & 0x04)
+                      {
+                          if(g_ucDdcciCommandNumber == 0)
+                          {
+                              g_ucDdcciRxBuf[g_ucDdcciCommandNumber++] = MCU_I2C_SUB_IN_FF28;
+                          }
+              
+                          g_ucDdcciRxBuf[g_ucDdcciCommandNumber++] = MCU_I2C_DATA_IN_FF29;
+              
+                          if( ((g_ucDdcciRxBuf[1]&0x7f)+3) == g_ucDdcciCommandNumber )
+                          {
+                              g_RxStatus = _DDC2B_COMPLETED;
+                          }
+                      }
+              #else
+              
+              #if(_DEBUG_MESSAGE_SUPPORT == _ON)
+                      if(tempbuf & 0x08)
+                      {
+                          if(g_bDebugMessageStart == 0)
+                          {
+                              MCU_I2C_DATA_OUT_FF2A = TxBUF;
+                          }
+                          else
+                          {
+                              if(bDataOutEnd)
+                              {
+                                  MCU_I2C_DATA_OUT_FF2A = TxBUF;
+                                  MCU_I2C_DATA_OUT_FF2A = TxBUF;
+                                  bDataOutEnd = 0;
+                              }
+                          }
+                      }
+              #else
+                      if(tempbuf & 0x08)
+                      {
+                          MCU_I2C_DATA_OUT_FF2A = TxBUF;
+                      }
+              #endif
+              
+                      if(tempbuf & 0x01)
+                      {
+                          g_ucDdcciCommandNumber = 0;
+                      }
+              
+                      if(tempbuf & 0x02)
+                      {
+                          g_ucDdcciCommandNumber = 0;
+                      }
+              
+                      if(tempbuf & 0x04)
+                      {
+                          if(g_ucDdcciCommandNumber == 0)
+                          {
+                              ucDdcciData[g_ucDdcciCommandNumber] = MCU_I2C_SUB_IN_FF28;
+                          }
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 10  
+
+              
+                          g_ucDdcciCommandNumber++;
+                          ucDdcciData[g_ucDdcciCommandNumber] = MCU_I2C_DATA_IN_FF29;
+                          bRunCommand = _TRUE;
+                      }
+              
+                      MCU_I2C_STATUS_FF2B = tempbuf & 0xc0;
+              #endif
+                  }   // End of if(!bRunCommand)
+              }
+              #endif  // #if(_DEBUG_TOOL == _ISP_FOR_RTD2120)
+ 556          
+ 557          #if(_DEBUG_TOOL == _ISP_FOR_EMBEDDED)
+ 558          void IntProcDdcci(void)  interrupt 2
+ 559          {
+ 560   1          BYTE tempbuf = 0;
+ 561   1      
+ 562   1      #if(_DP_SUPPORT == _ON)
+                  BYTE ucFillRound = 0;
+              #endif
+ 565   1      
+ 566   1      #if(_DDCCI_SUPPORT == _ON)
+                  if(GET_DDCCI_STATUS())
+                  {
+              
+                      /*
+                      if(GET_INPUTSOURCE_TYPE() != _SOURCE_DP)
+                      */
+                      if(g_ucActiveInputSourceType != _SOURCE_DP)
+                      {
+                          // Reset IIC Data Buffer
+                          MCU_I2C_IRQ_CTRL2_FF2A |= 0x40;
+                          MCU_I2C_STATUS2_FF29 &= 0xCF;
+              
+                          tempbuf = MCU_I2C_STATUS_FF27;
+              
+                          if(tempbuf & 0x08)
+                          {
+                              MCU_I2C_IRQ_CTRL2_FF2A |= 0xa0;
+              
+                              if( g_ucDdcciTxCount == (g_ucDdcciTxBuf[_DDC_LENGTH]&0x7f)+2 )
+                              {
+                                  /*
+                                  DDC2Bi_InitTx();
+                                  */
+                                  CDDC2Bi_InitTx();
+                              }
+                              else
+                              {
+                                  g_ucDdcciTxCount++;
+                                  MCU_I2C_DATA_OUT_FF26 = g_ucDdcciTxBuf[g_ucDdcciTxCount];
+                                  MCU_I2C_DATA_OUT_FF26 = g_ucDdcciTxBuf[g_ucDdcciTxCount];
+                              }
+              
+                              MCU_I2C_IRQ_CTRL2_FF2A &= (~_BIT5);
+                          }
+              
+                          if(tempbuf & 0x02)
+                          {
+                              g_ucDdcciCommandNumber = 0;
+                              g_RxStatus = _DDC2B_CLEAR;
+                          }
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 11  
+
+              
+                          if(tempbuf & 0x04)
+                          {
+                              /*
+                              if(MCU_I2C_SET_SLAVE_FF23 == 0x6e)
+                              {
+                                  if(!g_ucDdcciCommandNumber)
+                                  {
+                                      g_ucDdcciRxBuf[g_ucDdcciCommandNumber++] = MCU_I2C_SUB_IN_FF24;
+                                  }
+              
+                                  g_ucDdcciRxBuf[g_ucDdcciCommandNumber++] = MCU_I2C_DATA_IN_FF25;
+              
+                                  if(((g_ucDdcciRxBuf[1] & 0x7f) + 3) == g_ucDdcciCommandNumber)
+                                  {
+                                      g_RxStatus = _DDC2B_COMPLETED;
+                                  }
+                              }
+                              else
+                              {
+                                  if(g_ucDdcciCommandNumber == 0)
+                                  {
+                                      ucDdcciData[g_ucDdcciCommandNumber] = MCU_I2C_SUB_IN_FF24;
+                                  }
+                                  g_ucDdcciCommandNumber++;
+                                  ucDdcciData[g_ucDdcciCommandNumber] = MCU_I2C_DATA_IN_FF25;
+                                  bRunCommand = _TRUE;
+                              }
+                              */
+                              if(!g_ucDdcciCommandNumber)
+                              {
+                                  g_ucDdcciRxBuf[g_ucDdcciCommandNumber++] = MCU_I2C_SUB_IN_FF24;
+                              }
+              
+                              g_ucDdcciRxBuf[g_ucDdcciCommandNumber++] = MCU_I2C_DATA_IN_FF25;
+              
+                              if(((g_ucDdcciRxBuf[1] & 0x7f) + 3) == g_ucDdcciCommandNumber)
+                              {
+                                  g_RxStatus = _DDC2B_COMPLETED;
+                              }
+                          }
+              
+                          MCU_I2C_STATUS_FF27 = tempbuf & 0xc0;
+                          MCU_I2C_STATUS2_FF29 = 0x00;
+              
+                      }
+              #if(_DP_SUPPORT == _ON)
+                      /*
+                      else if(GET_INPUTSOURCE_TYPE() == _SOURCE_DP)
+                      */
+                      else if(g_ucActiveInputSourceType == _SOURCE_DP)
+                      {
+                          tempbuf = MCU_I2C_STATUS_FF27;
+                          MCU_I2C_STATUS_FF27 &= ~(tempbuf); // clear the flag information in hardware
+              
+                          if((tempbuf & 0x01) != 0)
+                          {
+                              g_ucDdcciTxCount = 0;
+                          }
+              
+                          if((tempbuf & 0x04) != 0)
+                          {
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 12  
+
+                              if(g_ucDdcciTxCount == 0)
+                              {
+                                  g_ucDdcciRxBuf[g_ucDdcciTxCount++] = MCU_I2C_SUB_IN_FF24;
+                              }
+              
+                              while((MCU_I2C_STATUS2_FF29 & 0x02) == 0)
+                              {
+                                  g_ucDdcciRxBuf[g_ucDdcciTxCount++] = MCU_I2C_DATA_IN_FF25;
+                              }
+              
+                              if(((g_ucDdcciRxBuf[1] & 0x7F) + 3) == g_ucDdcciTxCount)
+                              {
+                                  g_RxStatus = _DDC2B_COMPLETED;
+              
+              #if((_SCALER_TYPE == _RTD2472D) || (_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                                  MCU_I2C_IRQ_CTRL2_FF2A = (MCU_I2C_IRQ_CTRL2_FF2A | _BIT6); //reset data buffer
+              #endif
+              
+                                  if(g_ucDdcciRxBuf[2] == 0xF3) // Capabilities
+                                  {
+                                      /*
+                                      DDCCI_GetCapabilitiesRequest();
+                                      */
+                                      CDdcDDCCI_GetCapabilitiesRequest();
+                                      g_RxStatus = _DDC2B_CLEAR;
+                                  }
+                                  else if(g_ucDdcciRxBuf[2] == 0x03)
+                                  {
+                                      MCU_I2C_IRQ_CTRL2_FF2A |= _BIT5;
+                                      MCU_I2C_DATA_OUT_FF26 = 0x6E;
+                                      MCU_I2C_DATA_OUT_FF26 = 0x80;
+                                      MCU_I2C_DATA_OUT_FF26 = 0xBE;
+                                      MCU_I2C_IRQ_CTRL2_FF2A &= (~_BIT5);
+                                  }
+              
+                              }
+                          }
+              
+                          if((tempbuf & _BIT3) != 0)
+                          {
+                              MCU_I2C_IRQ_CTRL2_FF2A |= _BIT5;     // enable mcu write
+              
+                              if(g_ucDdcciTxCount < ((g_ucDdcciTxBuf[1] & 0x7F) + 2))
+                              {
+                                  while(((MCU_I2C_STATUS2_FF29 & _BIT2) == 0) && (g_ucDdcciTxCount < ((g_ucDdcciTxBuf[1]
+             - & 0x7F) + 2)))
+                                  {
+                                      g_ucDdcciTxCount++;
+                                      MCU_I2C_DATA_OUT_FF26 = g_ucDdcciTxBuf[g_ucDdcciTxCount];
+                                  }
+              
+                              }
+              
+                              // Transmit NULL message 6E-80-BE
+                              // Inorder to fill the data buffer to full immediately
+                              // And avoid to fill the data by re-entering the INT again
+                              // for DP MCCS code modify start
+                              ucFillRound = 0;
+              
+                              while(((MCU_I2C_STATUS2_FF29 & _BIT2) == 0) && (g_ucDdcciTxCount >= ((g_ucDdcciTxBuf[1] & 
+             -0x7F) + 2)))
+                              {
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 13  
+
+                                  ucFillRound = ucFillRound % 3;
+              
+                                  switch(ucFillRound)
+                                  {
+                                      case 0:
+                                          MCU_I2C_DATA_OUT_FF26 = 0x6E;
+                                          break;
+              
+                                      case 1:
+                                          MCU_I2C_DATA_OUT_FF26 = 0x80;
+                                          break;
+              
+                                      case 2:
+                                          MCU_I2C_DATA_OUT_FF26 = 0xBE;
+                                          break;
+              
+                                      default:
+                                          break;
+                                  }
+              
+                                  ucFillRound++;
+                              }
+                              // for DP MCCS code modify end
+              
+                              MCU_I2C_IRQ_CTRL2_FF2A &= (~_BIT5);
+                          }
+              
+                          MCU_I2C_STATUS2_FF29 = 0x80;
+                      }
+              #endif // End of #if(_DP_SUPPORT == _ON)
+                  }
+                  else
+              #endif
+ 762   1          {
+ 763   2              MCU_I2C_STATUS2_FF29 &= 0xCF;
+ 764   2      
+ 765   2              if(!bRunCommand)
+ 766   2              {
+ 767   3                  tempbuf = MCU_I2C_STATUS_FF27;
+ 768   3      
+ 769   3                  if(tempbuf & 0x02)
+ 770   3                  {
+ 771   4                      // V012 Modify 20100324 Start
+ 772   4                      // V012 Patch Note (23) : Fix the issue that DDC debug could not read in power saving.
+ 773   4                      // Clear SUB_I Flag
+ 774   4                      MCU_I2C_STATUS_FF27 = 0xBD;
+ 775   4                      // V012 Modify 20100324 End
+ 776   4      
+ 777   4                      g_ucDdcciCommandNumber = 0;
+ 778   4                      ucDdcciData[0] = MCU_I2C_SUB_IN_FF24;
+ 779   4      
+ 780   4                      // V012 Modify 20100324 Start
+ 781   4                      // V012 Patch Note (23) : Fix the issue that DDC debug could not read in power saving.
+ 782   4                      /*
+ 783   4                      //Reset IIC Data Buffer
+ 784   4                      MCU_I2C_IRQ_CTRL2_FF2A |= 0x40;
+ 785   4                      */
+ 786   4                      // Host write Enable
+ 787   4                      MCU_I2C_IRQ_CTRL2_FF2A &= 0xDF;
+ 788   4                      // V012 Modify 20100324 End
+ 789   4                  }
+ 790   3      
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 14  
+
+ 791   3                  if(tempbuf & 0x04)
+ 792   3                  {
+ 793   4                      g_ucDdcciCommandNumber++;
+ 794   4                      ucDdcciData[g_ucDdcciCommandNumber] = MCU_I2C_DATA_IN_FF25;
+ 795   4      
+ 796   4                      // V012 Modify 20100324 Start
+ 797   4                      // V012 Patch Note (23) : Fix the issue that DDC debug could not read in power saving.
+ 798   4                      // Clear D_IN_I Flag
+ 799   4                      MCU_I2C_STATUS_FF27 = 0xBB;
+ 800   4                      // V012 Modify 20100324 End
+ 801   4                  }
+ 802   3      
+ 803   3                  // V012 Modify 20100324 Start
+ 804   3                  // V012 Patch Note (23) : Fix the issue that DDC debug could not read in power saving.
+ 805   3                  /*
+ 806   3                  if((tempbuf & 0x10) && g_ucDdcciCommandNumber)
+ 807   3                  */
+ 808   3                  if((tempbuf & _BIT4) == _BIT4)
+ 809   3                  {
+ 810   4                      MCU_I2C_STATUS_FF27 = 0xAF;
+ 811   4      
+ 812   4                      if(g_ucDdcciCommandNumber > 0)
+ 813   4                      // V012 Modify 20100324 End
+ 814   4                      {
+ 815   5      #if(_DDC_CHANNEL_SEL == _HDMI_DDC_CHANNEL)
+                                  MCU_HDMI_DDC_CTRL2_FF2E |= 0x01;
+              #elif(_DDC_CHANNEL_SEL == _DVI_DDC_CHANNEL)
+                                  MCU_DVI_DDC_CTRL2_FF20 |= 0x01;
+              #else
+ 820   5                          MCU_ADC_DDC_CTRL2_FF1D |= 0x01;
+ 821   5      #endif
+ 822   5                          g_usDebugCount = 1;
+ 823   5      
+ 824   5      #if(_DEBUG_MESSAGE_SUPPORT == _ON)
+ 825   5                          if(ucDdcciData[0] == 0x55)
+ 826   5                          {
+ 827   6                              if(ucDdcciData[1] == 0x00)
+ 828   6                              {
+ 829   7                                  g_usFilterPro = 0;
+ 830   7                              }
+ 831   6                              else
+ 832   6                              {
+ 833   7                                  g_usFilterPro = ((ucDdcciData[1] << 8) + ucDdcciData[2]);
+ 834   7                              }
+ 835   6                          }
+ 836   5      
+ 837   5                          if((ucDdcciData[0] == 0x2F) && g_bDebugMessageEven)
+ 838   5                          {
+ 839   6                              g_bDebugMessageEven = _FALSE;
+ 840   6                              g_bFwHalt = _FALSE;
+ 841   6                          }
+ 842   5                          else if((ucDdcciData[0] == 0x55) && (!g_bDebugMessageEven))
+ 843   5                          {
+ 844   6                              g_bDebugMessageEven = _TRUE;
+ 845   6                          }
+ 846   5      #endif
+ 847   5      
+ 848   5                          // V012 Modify 20100324 Start
+ 849   5                          // V012 Patch Note (23) : Fix the issue that DDC debug could not read in power saving.
+ 850   5                          MCU_I2C_IRQ_CTRL2_FF2A |= 0x20;
+ 851   5                          // V012 Modify 20100324 End
+ 852   5      
+C51 COMPILER V8.02   INT                                                                   03/05/2012 13:24:13 PAGE 15  
+
+ 853   5                          bRunCommand = _TRUE;
+ 854   5                      }
+ 855   4                  // V012 Modify 20100324 Start
+ 856   4                  // V012 Patch Note (23) : Fix the issue that DDC debug could not read in power saving.
+ 857   4                  }
+ 858   3                  // V012 Modify 20100324 End
+ 859   3              }
+ 860   2      
+ 861   2              // V012 Modify 20100324 Start
+ 862   2              // V012 Patch Note (23) : Fix the issue that DDC debug could not read in power saving.
+ 863   2              /*
+ 864   2              MCU_I2C_STATUS_FF27 &= 0x0C;
+ 865   2      
+ 866   2              // Host write/read Enable
+ 867   2              MCU_I2C_IRQ_CTRL2_FF2A &= 0xDF;
+ 868   2              */
+ 869   2              else
+ 870   2              {
+ 871   3                  MCU_I2C_STATUS_FF27 = 0xA9;
+ 872   3              }
+ 873   2              // V012 Modify 20100324 End
+ 874   2          }
+ 875   1      }
+ 876          #endif  // #if(_DEBUG_TOOL == _ISP_FOR_EMBEDDED)
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    441    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

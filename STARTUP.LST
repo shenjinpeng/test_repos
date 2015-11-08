@@ -1,0 +1,9 @@
+
+  PA51 2006 中文汇编系统
+Version 6.12 (C) Copyright 2006.10
+C:\KEIL\C51\BIN\A51.EXE @.\Output\STARTUP._ia N=2
+格式:4
+Common + STARTUP = Common\STARTUP.A51
+存盘:Common\STARTUP.A51 C:\KEIL\C51\BIN\PINC\BAK\BAK-04.ASM
+编译: C:\KEIL\C51\BIN\KE51.exe @.\Output\STARTUP._ia 586
+操作错误,<1> 无法打开源汇编文件 STARTUP.LST

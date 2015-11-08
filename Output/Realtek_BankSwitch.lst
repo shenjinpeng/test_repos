@@ -1,0 +1,89 @@
+C51 COMPILER V8.02   REALTEK_BANKSWITCH                                                    03/05/2012 13:24:23 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE REALTEK_BANKSWITCH
+OBJECT MODULE PLACED IN .\Output\Realtek_BankSwitch.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE User\Realtek OSD\Code\Realtek_BankSwitch.c OPTIMIZE(9,SPEED) DEFINE(_PROJEC
+                    -T=_RTD2472D_DEMO_BOARD) PRINT(.\Output\Realtek_BankSwitch.lst) OBJECT(.\Output\Realtek_BankSwitch.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : Struct.c No.0000
+  17          // Update Note  :
+  18          //
+  19          //----------------------------------------------------------------------------------------------------
+  20          
+  21          #define __REALTEK_BANK0__
+  22          
+  23          #include "Common\Header\Include.h"
+  24          
+  25          #if(_OSD_TYPE == _REALTEK_OSD)
+  26          
+  27          //--------------------------------------------------
+  28          // Description  : .......
+  29          // Input Value  :
+  30          // Output Value :
+  31          //--------------------------------------------------
+  32          void COsdBankSwitchNoPortWarning(void)
+  33          {
+  34   1      
+  35   1      #if(_TMDS_SUPPORT == _ON)
+  36   1          BYTE temp;
+  37   1      #endif
+  38   1      #if(_DP_SUPPORT == _ON)
+                  BYTE temp1;
+              #endif
+  41   1      #if(_TMDS_SUPPORT == _ON)
+  42   1          temp = tHDMI_NO_PORT_WARNING;
+  43   1      #endif
+  44   1      #if(_DP_SUPPORT == _ON)
+                  temp1 = tDP_NO_PORT_WARNING;
+              #endif
+  47   1      
+  48   1      }
+  49          
+  50          //--------------------------------------------------
+  51          // Description  : Initial OSD flag state
+  52          // Input Value  :
+  53          // Output Value :
+  54          //--------------------------------------------------
+C51 COMPILER V8.02   REALTEK_BANKSWITCH                                                    03/05/2012 13:24:23 PAGE 2   
+
+  55          void COsdBankSwitchCancelTimer(void)
+  56          {
+  57   1          COsdBankSwitchNoPortWarning();
+  58   1          CTimerCancelTimerEvent(COsdDispOsdTimerEvent);
+  59   1      }
+  60          
+  61          
+  62          #endif  // End of #if(_OSD_TYPE == _REALTEK_OSD)
+  63          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     16    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

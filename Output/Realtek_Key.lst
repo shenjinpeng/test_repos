@@ -1,0 +1,478 @@
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE REALTEK_KEY
+OBJECT MODULE PLACED IN .\Output\Realtek_Key.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE User\Realtek OSD\Code\Realtek_Key.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_RTD2
+                    -472D_DEMO_BOARD) PRINT(.\Output\Realtek_Key.lst) OBJECT(.\Output\Realtek_Key.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : Key.c No.0000
+  17          // Update Note  :
+  18          //
+  19          //----------------------------------------------------------------------------------------------------
+  20          
+  21          #define __REALTEK_KEY__
+  22          
+  23          #include "Common\Header\Include.h"
+  24          
+  25          #if(_OSD_TYPE == _REALTEK_OSD)
+  26          
+  27          
+  28          //--------------------------------------------------
+  29          // Description  : Key scan process
+  30          // Input Value  : None
+  31          // Output Value : None
+  32          //--------------------------------------------------
+  33          void CKeyHandler(void)
+  34          {
+  35   1      
+  36   1          // Clear the key message
+  37   1          ucKeyMessage = _NONE_KEY_MESSAGE;
+  38   1      
+  39   1          if(CKeyScanReady())
+  40   1          {
+  41   2              // Store previous key state
+  42   2              ucKeyStatePrev = ucKeyStateCurr;
+  43   2      
+  44   2              // Get current key state
+  45   2              ucKeyStateCurr = CKeyScan();
+  46   2      
+  47   2              // Power key process, return if power key is pressed
+  48   2              if(CKeyPowerKeyProc())
+  49   2              {
+  50   3                  return;
+  51   3              }
+  52   2      
+  53   2              // Convert key state to key message, store in (ucKeyNotify)
+  54   2              CKeyMessageProc();
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 2   
+
+  55   2          }
+  56   1      }
+  57          
+  58          //--------------------------------------------------
+  59          // Description  : Check power key process
+  60          // Input Value  : None
+  61          // Output Value : None
+  62          //--------------------------------------------------
+  63          void CKeyCheckPowerKey(void)
+  64          {
+  65   1          // Store previous key state
+  66   1          ucKeyStatePrev = ucKeyStateCurr;
+  67   1      
+  68   1          // Get current key state
+  69   1          ucKeyStateCurr = CKeyScan();
+  70   1      
+  71   1          // Power key process
+  72   1          CKeyPowerKeyProc();
+  73   1      }
+  74          
+  75          //--------------------------------------------------
+  76          // Description  : Initial key status
+  77          // Input Value  : None
+  78          // Output Value : None
+  79          //--------------------------------------------------
+  80          void CKeyInitial(void)
+  81          {
+  82   1          CLR_KEYSCANREADY();
+  83   1          CLR_KEYSCANSTART();
+  84   1      }
+  85          
+  86          //--------------------------------------------------
+  87          // Description  : Key scan ready process. We wait 0.02 sec in order to keep the keypad debounce
+  88          // Input Value  : None
+  89          // Output Value : None
+  90          //--------------------------------------------------
+  91          bit CKeyScanReady(void)
+  92          {
+  93   1          if(GET_KEYSCANSTART() && GET_KEYSCANREADY())
+  94   1          {
+  95   2              return _TRUE;
+  96   2          }
+  97   1          else if(!GET_KEYSCANSTART())
+  98   1          {
+  99   2              // Wait 0.02 sec in order to keep the keypad debounce
+ 100   2              SET_KEYSCANSTART();
+ 101   2              CTimerReactiveTimerEvent(SEC(0.02), CKeyScanReadyTimerEvent);
+ 102   2      
+ 103   2              return _FALSE;
+ 104   2          }
+ 105   1          else
+ 106   1          {
+ 107   2              return _FALSE;
+ 108   2          }
+ 109   1      }
+ 110          
+ 111          //--------------------------------------------------
+ 112          // Description  : Key scan ready timer event
+ 113          // Input Value  : None
+ 114          // Output Value : None
+ 115          //--------------------------------------------------
+ 116          void CKeyScanReadyTimerEvent(void)
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 3   
+
+ 117          {
+ 118   1          SET_KEYSCANREADY();
+ 119   1      }
+ 120          
+ 121          //--------------------------------------------------
+ 122          // Description  : Key repeat enable timer event
+ 123          // Input Value  : None
+ 124          // Output Value : None
+ 125          //--------------------------------------------------
+ 126          void CKeyRepeatEnableTimerEvent(void)
+ 127          {
+ 128   1          SET_KEYREPEATSTART();
+ 129   1      }
+ 130          
+ 131          //--------------------------------------------------
+ 132          // Description  : Key message translation
+ 133          // Input Value  : ucKeyMask     --> Key mask
+ 134          //                ucKeyMsg      --> Key message
+ 135          // Output Value : None
+ 136          //--------------------------------------------------
+ 137          void CKeyMessageConvert(BYTE ucKeyMask, BYTE ucKeyMsg)
+ 138          {
+ 139   1          if((ucKeyStatePrev ^ ucKeyStateCurr) & ucKeyMask)
+ 140   1          {
+ 141   2              ucKeyMessage = ucKeyMsg;
+ 142   2          }
+ 143   1          else
+ 144   1          {
+ 145   2              if(GET_KEYREPEATENABLE())
+ 146   2              {
+ 147   3                  if(GET_KEYREPEATSTART())
+ 148   3                  {
+ 149   4                      ucKeyMessage = ucKeyMsg;
+ 150   4                  }
+ 151   3                  else
+ 152   3                  {
+ 153   4                      CTimerActiveTimerEvent(SEC(_KEY_REPEAT_START_TIME), CKeyRepeatEnableTimerEvent);
+ 154   4                  }
+ 155   3              }
+ 156   2          }
+ 157   1      }
+ 158          
+ 159          //--------------------------------------------------
+ 160          // Description  : Power key process
+ 161          // Input Value  : None
+ 162          // Output Value : Return _TRUE if power key is pressed
+ 163          //--------------------------------------------------
+ 164          bit CKeyPowerKeyProc(void)
+ 165          {
+ 166   1          if(ucKeyStateCurr & _POWER_KEY_MASK)
+ 167   1          {
+ 168   2              if((ucKeyStatePrev ^ ucKeyStateCurr) & _POWER_KEY_MASK)
+ 169   2              {
+ 170   3      //cclee
+ 171   3                 //CTimerDelayXms(25);
+ 172   3                  //ucKeyStateCurr = CKeyScan();
+ 173   3      
+ 174   3                  //if((ucKeyStatePrev ^ ucKeyStateCurr) & _POWER_KEY_MASK)
+ 175   3                  //{
+ 176   3                      CKeyPowerKeyMix();
+ 177   3      
+ 178   3                      SET_POWERSWITCH();
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 4   
+
+ 179   3      
+ 180   3                      return _TRUE;
+ 181   3                  //}
+ 182   3              }
+ 183   2          }
+ 184   1      
+ 185   1          return _FALSE;
+ 186   1      }
+ 187          
+ 188          //--------------------------------------------------
+ 189          // Description  : Get key status
+ 190          // Input Value  : None
+ 191          // Output Value : Return Key status
+ 192          //--------------------------------------------------
+ 193          BYTE CKeyScan(void)
+ 194          {
+ 195   1      
+ 196   1          BYTE keystate = 0;
+ 197   1      
+ 198   1      #if((_PCB_TYPE == _RTD2472D_DEMO_PCB) || (_PCB_TYPE == _RTD2472RD_DEMO_PCB) || (_PCB_TYPE == _RTD2545LR_DE
+             -MO_PCB))
+ 199   1      
+ 200   1          BYTE code ADC_SCAN_TABLE[][2] =
+ 201   1          {
+ 202   1              { 0x00, 0x14 },                 //(0.00)  0.00 ~ 0.30
+ 203   1              { 0x40, 0x80 },                 //(1.60)  1.40 ~ 1.80
+ 204   1              { 0x90, 0xd8 },                 //(2.80)  2.60 ~ 3.00
+ 205   1          };
+ 206   1      
+ 207   1          BYTE voltage1 = 0, voltage2 = 0;
+ 208   1      
+ 209   1          do
+ 210   1          {
+ 211   2      
+ 212   2      #if((_MCU_TYPE == _REALTEK_RTD2120) || (_MCU_TYPE == _REALTEK_RTD2122)) //Anderson 080107 for RTD2122
+                      MCU_ADC_CTRL_FF0B = 0x80;
+              #else
+ 215   2              MCU_ADC_CTRL_FF08 = 0x80;
+ 216   2      #endif
+ 217   2      
+ 218   2              CTimerDelayXms(1);
+ 219   2              voltage1 = (AD_KEY1 & 0xfc);
+ 220   2              voltage2 = (AD_KEY0 & 0xfc);
+ 221   2      
+ 222   2      #if((_MCU_TYPE == _REALTEK_RTD2120) || (_MCU_TYPE == _REALTEK_RTD2122))
+                      MCU_ADC_CTRL_FF0B = 0x80;
+              #else
+ 225   2              MCU_ADC_CTRL_FF08 = 0x80;
+ 226   2      #endif
+ 227   2      
+ 228   2              CTimerDelayXms(1);
+ 229   2      
+ 230   2              if (abs((AD_KEY1 & 0xfc) - voltage1) < 2 && abs((AD_KEY0 & 0xfc) - voltage2) < 2)
+ 231   2              {
+ 232   3                  break;
+ 233   3              }
+ 234   2      
+ 235   2          }while (1);
+ 236   1      
+ 237   1      
+ 238   1          voltage1 = (AD_KEY1 & 0xfc);
+ 239   1          voltage2 = (AD_KEY0 & 0xfc);
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 5   
+
+ 240   1      
+ 241   1          if((ADC_SCAN_TABLE[0][0] <= voltage1) && (voltage1 < ADC_SCAN_TABLE[0][1]))         // RIGHT(0.00)  0.
+             -00 ~ 0.30
+ 242   1          {
+ 243   2              keystate = keystate |_RIGHT_KEY_MASK ;
+ 244   2          }
+ 245   1          if((ADC_SCAN_TABLE[1][0] < voltage1) && (voltage1 < ADC_SCAN_TABLE[1][1]))          // LEFT (1.55)  1 
+             -~ 1.26 //1.45 ~ 1.65
+ 246   1          {
+ 247   2              keystate = keystate |_LEFT_KEY_MASK ;
+ 248   2          }
+ 249   1          if((ADC_SCAN_TABLE[2][0] < voltage1) && (voltage1 < ADC_SCAN_TABLE[2][1]))          // NONE (2.10)  2.
+             -1~2.3 //2.00 ~ 2.20
+ 250   1          {
+ 251   2              keystate = keystate |_KEY5_MASK ;//SJP20110804 AUTO KEY
+ 252   2          }
+ 253   1      
+ 254   1          if((ADC_SCAN_TABLE[0][0] <= voltage2) && (voltage2 < ADC_SCAN_TABLE[0][1]))         // POWER(0.00)  0.
+             -00 ~ 0.30
+ 255   1          {
+ 256   2              keystate = keystate | _POWER_KEY_MASK;
+ 257   2          }
+ 258   1          if((ADC_SCAN_TABLE[1][0] < voltage2) && (voltage2 < ADC_SCAN_TABLE[1][1]))          // MENU (1.55)  1.
+             -45 ~ 1.65
+ 259   1          {
+ 260   2              keystate = keystate | _MENU_KEY_MASK;
+ 261   2          }
+ 262   1          if((ADC_SCAN_TABLE[2][0] < voltage2) && (voltage2 < ADC_SCAN_TABLE[2][1]))          // EXIT (2.10)  2.
+             -00 ~ 2.20
+ 263   1          {
+ 264   2              keystate = keystate | _EXIT_KEY_MASK;
+ 265   2          }
+ 266   1      
+ 267   1      #elif((_PCB_TYPE == _RTD2472D_QA_PCB) || (_PCB_TYPE == _RTD2472RD_QA_PCB) || (_PCB_TYPE == _RTD2545LR_QA_P
+             -CB))
+                  if(!bRIGHT_KEY)
+                  {
+                      keystate = keystate | _RIGHT_KEY_MASK;
+                  }
+              
+                  if(!bLEFT_KEY)
+                  {
+                      keystate = keystate | _LEFT_KEY_MASK;
+                  }
+              
+                  if(!bEXIT_KEY)
+                  {
+                      keystate = keystate | _EXIT_KEY_MASK;
+                  }
+              
+                  if(!bMENU_KEY)
+                  {
+                      keystate = keystate | _MENU_KEY_MASK;
+                  }
+              
+                  if(!bPOWER_KEY)
+                  {
+                      keystate = keystate | _POWER_KEY_MASK;
+                  }
+              
+              #else
+              
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 6   
+
+                  No Setting !!
+              
+              
+              #endif
+ 299   1      
+ 300   1          if(keystate != 0)
+ 301   1          {
+ 302   2              CKeyInitial();
+ 303   2          }
+ 304   1      
+ 305   1          return keystate;
+ 306   1      
+ 307   1      }
+ 308          
+ 309          //--------------------------------------------------
+ 310          // Description  : We can add some settings here while combo key with power key
+ 311          // Input Value  : None
+ 312          // Output Value : None
+ 313          //--------------------------------------------------
+ 314          void CKeyPowerKeyMix(void)
+ 315          {
+ 316   1          switch(ucKeyStateCurr)
+ 317   1          {
+ 318   2              case _POWER_RIGHT_KEY_MASK:
+ 319   2                  ucOsdEventMsg = _ENTER_FACTORY_MODE_MSG;
+ 320   2                  break;
+ 321   2      
+ 322   2              case _POWER_MENU_KEY_MASK:
+ 323   2                  break;
+ 324   2      
+ 325   2              case _POWER_LEFT_RIGHT_KEY_MASK:
+ 326   2                  break;
+ 327   2          }
+ 328   1      }
+ 329          
+ 330          //--------------------------------------------------
+ 331          // Description  : Convert keypad status into key message, stores in ucKeyNotify
+ 332          // Input Value  : None
+ 333          // Output Value : None
+ 334          //--------------------------------------------------
+ 335          void CKeyMessageProc(void)
+ 336          {
+ 337   1          switch(ucKeyStateCurr)
+ 338   1          {
+ 339   2              case _MENU_KEY_MASK:
+ 340   2                  CKeyMessageConvert(_MENU_KEY_MASK, _MENU_KEY_MESSAGE);
+ 341   2                  break;
+ 342   2      
+ 343   2              case _RIGHT_KEY_MASK:
+ 344   2                  CKeyMessageConvert(_RIGHT_KEY_MASK, _RIGHT_KEY_MESSAGE);
+ 345   2                  break;
+ 346   2      
+ 347   2              case _LEFT_KEY_MASK:
+ 348   2                  CKeyMessageConvert(_LEFT_KEY_MASK, _LEFT_KEY_MESSAGE);
+ 349   2                  break;
+ 350   2      
+ 351   2              case _EXIT_KEY_MASK:
+ 352   2                  CKeyMessageConvert(_EXIT_KEY_MASK, _EXIT_KEY_MESSAGE);
+ 353   2                  break;
+ 354   2      
+ 355   2              case _KEY5_MASK:
+ 356   2                  CKeyMessageConvert(_KEY5_MASK,_5_KEY_MESSAGE);//auto keymessage=4 sjp20110804
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 7   
+
+ 357   2                  break;
+ 358   2                              
+ 359   2              case _LSLUMI_MASK:
+ 360   2                  CKeyMessageConvert(_LSLUMI_MASK, _LSLUMI_MESSAGE);//LSLUMI KEYMESSAGE=8 SJP20110623
+ 361   2                  break;
+ 362   2                              
+ 363   2              case _PWMLUMI_MASK:
+ 364   2                 CKeyMessageConvert(_PWMLUMI_MASK, _PWMLUMI_MESSAGE);//pwmLUMI KEYMESSAGE=9 SJP20110715                       
+ 365   2                 break;
+ 366   2                         
+ 367   2              case _AUTOCOLOR_MASK:
+ 368   2                 CKeyMessageConvert(_AUTOCOLOR_MASK,_AUTOCOLOR_MESSAGE);//AUTOCOLOR KEYMESSAGE=6 SJP20110815
+ 369   2                 break;
+ 370   2             case   _AGE_MODE_MASK:
+ 371   2                          CKeyMessageConvert(_AGE_MODE_MASK,_AGE_MODE_MESSAGE);//AUTOCOLOR KEYMESSAGE=6 SJP20110815
+ 372   2                          
+ 373   2                  
+ 374   2                 break;
+ 375   2                         
+ 376   2              default:
+ 377   2                  CLR_KEYREPEATSTART();
+ 378   2                  CTimerCancelTimerEvent(CKeyRepeatEnableTimerEvent);
+ 379   2                  break;
+ 380   2                              
+ 381   2          }
+ 382   1      }
+ 383          
+ 384          
+ 385          //--------------------------------------------------
+ 386          // Description  : For Demo Board Led Control
+ 387          // Input Value  : None
+ 388          // Output Value : None
+ 389          //--------------------------------------------------
+ 390          void CKeyKeyPadLedControl(void)
+ 391          {
+ 392   1          switch(ucCurrState)
+ 393   1          {
+ 394   2              case _PWOFF_STATE:
+ 395   2                  bLED1 = 1;
+ 396   2                  bLED2 = 1;
+ 397   2                  break;
+ 398   2      
+ 399   2              case _ACTIVE_STATE:
+ 400   2      
+ 401   2                  // V013 System Patch Note (9) 20100512 Modify Start
+ 402   2                  // Patch Reason : Make sure LED doesn't turn green before backlight lights up.
+ 403   2                  if(GET_READYFORDISPLAY() == _TRUE)
+ 404   2                  {
+ 405   3                      break;
+ 406   3                  }
+ 407   2                  // V013 System Patch Note (9) 20100512 Modify End
+ 408   2      
+ 409   2                  bLED1 = 0;
+ 410   2                  bLED2 = 1;
+ 411   2                  break;
+ 412   2      
+ 413   2              case _INITIAL_STATE:
+ 414   2              case _SEARCH_STATE:
+ 415   2              case _NOSIGNAL_STATE:
+ 416   2              case _NOSUPPORT_STATE:
+ 417   2              case _SLEEP_STATE:
+ 418   2      if(bWatchDogResetCtrl==_FALSE)
+C51 COMPILER V8.02   REALTEK_KEY                                                           03/05/2012 13:24:24 PAGE 8   
+
+ 419   2      {
+ 420   3                  bLED1 = 1;
+ 421   3                  bLED2 = 0;
+ 422   3      }
+ 423   2                  break;
+ 424   2      
+ 425   2              default:
+ 426   2                  break;
+ 427   2          }
+ 428   1      }
+ 429          
+ 430          
+ 431          #endif  // End of #if(_OSD_TYPE == _REALTEK_OSD)
+ 432          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    620    ----
+   CONSTANT SIZE    =      6    ----
+   XDATA SIZE       =      4    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

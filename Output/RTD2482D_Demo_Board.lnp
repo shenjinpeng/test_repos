@@ -1,0 +1,47 @@
+BANK0 {".\Output\DCR_Type_1.obj"},
+BANK0 {".\Output\DCR_Type_2.obj"},
+BANK0 {".\Output\DCR_Type_3.obj"},
+COMMON {".\Output\Align.obj"},
+BANK0 {".\Output\Ddc.obj"},
+COMMON {".\Output\Debug.obj"},
+COMMON {".\Output\I2c.obj"},
+COMMON {".\Output\Int.obj"},
+BANK0 {".\Output\Main.obj"},
+BANK0 {".\Output\Mcu.obj"},
+COMMON {".\Output\Timer.obj"},
+COMMON {".\Output\Uart.obj"},
+COMMON {".\Output\STARTUP.obj"},
+COMMON {".\Output\L51_bank.obj"},
+BANK1 {".\Output\Adjust.obj"},
+BANK1 {".\Output\Auto.obj"},
+BANK1 {".\Output\DisplayPort.obj"},
+BANK1 {".\Output\FrameSync.obj"},
+BANK1 {".\Output\Hdmi.obj"},
+BANK1 {".\Output\Memory.obj"},
+BANK0 {".\Output\Misc.obj"},
+BANK0 {".\Output\Mode.obj"},
+BANK0 {".\Output\Power.obj"},
+COMMON {".\Output\Scaler.obj"},
+COMMON {".\Output\Source.obj"},
+BANK0 {".\Output\Sync.obj"},
+BANK0 {".\Output\Video.obj"},
+BANK0 {".\Output\YPbPr.obj"},
+BANK0 {".\Output\Realtek_BankSwitch.obj"},
+BANK2 {".\Output\Realtek_Ddc.obj"},
+BANK0 {".\Output\Realtek_Eeprom.obj"},
+BANK0 {".\Output\Realtek_Flash.obj"},
+BANK0 {".\Output\Realtek_Key.obj"},
+BANK2 {".\Output\Realtek_Osd.obj"},
+BANK2 {".\Output\Realtek_OsdDisp.obj"},
+BANK2 {".\Output\Realtek_OsdFunc.obj"},
+BANK2 {".\Output\Realtek_OsdTable.obj"},
+BANK0 {".\Output\Realtek_Struct.obj"},
+BANK2 {".\Output\Realtek_Reserved.obj"} 
+TO ".\Output\RTD2482D_Demo_Board" BankArea(0x3000,0xFFFF) 
+PRINT(".\Output\RTD2482D_Demo_Board.m51") RAMSIZE(256) 
+;BANK0(?CO?Realtek_EEPROM(0x3000),?CO?ADJUST,?CO?HDMI,?CO?REALTEK_KEY,?CO?DISPLAYPORT)
+BANK0(?CO?MAIN(0x3000),?CO?Realtek_EEPROM,?CO?YPBPR,?CO?REALTEK_KEY)
+BANK1(?CO?ADJUST(0x3000),?CO?FRAMESYNC,?CO?HDMI)
+BANK2(?CO?Realtek_OSD(0x3000),?CO?Realtek_OSDTABLE,?CO?REALTEK_RESERVED(0xC000)) 
+OVERLAY( * ! ?CO?REALTEK_RESERVED )
+XDATA( 0XFB00-0XFC7F )

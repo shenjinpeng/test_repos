@@ -1,0 +1,1 @@
+HexToBin -ui 0 -result 0 -input 0 "output\RTD2482D_QA_Board.H00" -input 1 "output\RTD2482D_QA_Board.H01" -output "output\RTD2482D_QA_Board.bin"

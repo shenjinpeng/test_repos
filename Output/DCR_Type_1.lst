@@ -1,0 +1,203 @@
+C51 COMPILER V8.02   DCR_TYPE_1                                                            03/05/2012 13:24:12 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE DCR_TYPE_1
+OBJECT MODULE PLACED IN .\Output\DCR_Type_1.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE DCR\Code\DCR_Type_1.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_RTD2472D_DEMO_BOAR
+                    -D) PRINT(.\Output\DCR_Type_1.lst) OBJECT(.\Output\DCR_Type_1.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          //----------------------------------------------------------------------------------------------------
+  15          // ID Code      : DCR.c No.0000
+  16          // Update Note  :
+  17          //
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          #define __DCR_TYPE_1__
+  21          
+  22          #include "Common\Header\Include.h"
+  23          
+  24          
+  25          #if(_DCR_MODE == _DCR_TYPE_1)
+              
+              //--------------------------------------------------
+              // Description  : DCR Measurement by HW Control
+              // Input Value  : None
+              // Output Value : None
+              // Return Value : None
+              //--------------------------------------------------
+              void CDcrMeasureStartHD(void)
+              {
+                  DWORD ulTempB = 0;
+                  WORD usTempS = 0;
+                  WORD usTempE = 0;
+              
+                  // get the horizontal boundary
+                  CScalerRead(_DISP_ACCESS_PORT_2A, 1, &pData[0], _NON_AUTOINC);
+                  CScalerSetByte(_DISP_ACCESS_PORT_2A, ((pData[0] & 0xC0) | 0x05));
+                  CScalerRead(_DISP_DATA_PORT_2B, 2, &pData, _NON_AUTOINC);
+                  usTempS = 0;
+                  usTempS = pData[0];
+                  usTempS = usTempS << 8;
+                  usTempS = usTempS | pData[1];
+                  CScalerRead(_DISP_ACCESS_PORT_2A, 1, &pData[0], _NON_AUTOINC);
+                  CScalerSetByte(_DISP_ACCESS_PORT_2A, ((pData[0] & 0xC0) | 0x07));
+                  CScalerRead(_DISP_DATA_PORT_2B, 2, &pData, _NON_AUTOINC);
+                  usTempE = 0;
+                  usTempE = pData[0];
+                  usTempE = usTempE << 8;
+                  usTempE = usTempE | pData[1];
+                  g_usHorBoundary = usTempE - usTempS;
+C51 COMPILER V8.02   DCR_TYPE_1                                                            03/05/2012 13:24:12 PAGE 2   
+
+              
+                  // get the vertical boundary
+                  CScalerRead(_DISP_ACCESS_PORT_2A, 1, &pData[0], _NON_AUTOINC);
+                  CScalerSetByte(_DISP_ACCESS_PORT_2A, ((pData[0] & 0xC0) | 0x10));
+                  CScalerRead(_DISP_DATA_PORT_2B, 2, &pData, _NON_AUTOINC);
+                  usTempS = 0;
+                  usTempS = pData[0];
+                  usTempS = usTempS << 8;
+                  usTempS = usTempS | pData[1];
+                  CScalerRead(_DISP_ACCESS_PORT_2A, 1, &pData[0], _NON_AUTOINC);
+                  CScalerSetByte(_DISP_ACCESS_PORT_2A, ((pData[0] & 0xC0) | 0x12));
+                  CScalerRead(_DISP_DATA_PORT_2B, 2, &pData, _NON_AUTOINC);
+                  usTempE = 0;
+                  usTempE = pData[0];
+                  usTempE = usTempE << 8;
+                  usTempE = usTempE | pData[1];
+                  g_usVerBoundary = usTempE - usTempS;
+              
+                  CScalerPageSelect(_PAGE7);
+              
+                  //CScalerSetBit(_P7_DCR_ACCESS_PORT_D8, ~_BIT1, _BIT1);  // Set RESULT_READ to read the result
+                  CScalerSetByte(_P7_DCR_ACCESS_PORT_D8, 0x17);
+                  CScalerRead(_P7_DCR_DATA_PORT_D9, 1, &pData[0], _NON_AUTOINC);
+                  CScalerSetByte(_P7_DCR_ACCESS_PORT_D8, 0x1B);
+                  CScalerRead(_P7_DCR_DATA_PORT_D9, 1, &pData[1], _NON_AUTOINC);
+                  CScalerSetByte(_P7_DCR_ACCESS_PORT_D8, 0x1F);
+                  CScalerRead(_P7_DCR_DATA_PORT_D9, 1, &pData[2], _NON_AUTOINC);
+                  CScalerSetByte(_P7_DCR_ACCESS_PORT_D8, 0x23);
+                  CScalerRead(_P7_DCR_DATA_PORT_D9, 1, &pData[3], _NON_AUTOINC);
+              
+                  ulTempB = pData[0];
+                  ulTempB = ulTempB << 8;
+                  ulTempB = (ulTempB & 0x0000ff00) | pData[1];
+                  ulTempB = ulTempB << 8;
+                  ulTempB = (ulTempB & 0x00ffff00) | pData[2];
+                  ulTempB = ulTempB << 8;
+                  ulTempB = (ulTempB & 0xffffff00) | pData[3];
+              
+                  ulTempB = ulTempB / g_usVerBoundary;
+                  ulTempB = ulTempB / g_usHorBoundary;
+              
+                  g_usRGBInfo = ulTempB;
+              
+                  CDcrDcr1();
+              
+                  CScalerSetBit(_P7_DCR_ACCESS_PORT_D8, ~_BIT1, 0x00);    // Set RESULT_READ to read the result
+              }
+              
+              //--------------------------------------------------
+              // Description  : DCR Type 1 process
+              // Input Value  : None
+              // Output Value : None
+              // Return Value : None
+              //--------------------------------------------------
+              void CDcrDcr1(void)
+              {
+                  if(g_usRGBInfo < 96 )
+                  {
+                      pData[0] = (DWORD)255 * g_usRGBInfo / 96;
+                  }
+                  else
+                  {
+C51 COMPILER V8.02   DCR_TYPE_1                                                            03/05/2012 13:24:12 PAGE 3   
+
+                      pData[0] = 255;
+                  }
+              
+                  pData[0] = ((WORD)pData[0] * g_ucDCRPercent + (WORD)(stSystemData.BackLight * (100 - g_ucDCRPercent)))
+             - / 100;
+              
+                  CDcrSlowAdjust(pData[0]);
+                  g_ucPreDCCLum = 0;
+              }
+              
+              //--------------------------------------------------
+              // Description  : Step by step adjust the backlight
+              //                by control PWM
+              // Input Value  : ucValue
+              // Output Value : None
+              // Return Value : None
+              //--------------------------------------------------
+              void CDcrSlowAdjust(WORD ucValue)
+              {
+                  pData[0] = ucValue;
+              
+                  // Step by step PWM
+                  if(g_ucPreBacklightPWM > pData[0])              // white to black
+                  {
+                      if((g_ucPreBacklightPWM - pData[0]) > 20)
+                      {
+                          pData[0] = g_ucPreBacklightPWM - 10;
+                      }
+                      else
+                      {
+                          pData[0] = g_ucPreBacklightPWM - 1;
+                      }
+                  }
+                  else if(g_ucPreBacklightPWM < pData[0])         // black to white
+                  {
+                      if((pData[0] - g_ucPreBacklightPWM) > 20)
+                      {
+                          pData[0] = g_ucPreBacklightPWM + 10;
+                      }
+                      else
+                      {
+                          pData[0] = g_ucPreBacklightPWM + 1;
+                      }
+                  }
+                  else
+                  {
+                      pData[0] = g_ucPreBacklightPWM;
+                  }
+                  // End of step by step
+              
+                  g_ucPreBacklightPWM = pData[0];
+                  CAdjustBacklight(pData[0]);
+              }
+              
+              #endif // End of #if(_DCR_MODE == _DCR_TYPE_1)
+ 171          
+ 172          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+C51 COMPILER V8.02   DCR_TYPE_1                                                            03/05/2012 13:24:12 PAGE 4   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

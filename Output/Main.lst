@@ -1,0 +1,1165 @@
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 1   
+
+
+C51 COMPILER V8.02, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Output\Main.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE Common\Code\Main.c OPTIMIZE(9,SPEED) DEFINE(_PROJECT=_RTD2472D_DEMO_BOARD) 
+                    -PRINT(.\Output\Main.lst) OBJECT(.\Output\Main.obj)
+
+line level    source
+
+   1          /********************************************************************************/
+   2          /*   The  Software  is  proprietary,  confidential,  and  valuable to Realtek   */
+   3          /*   Semiconductor  Corporation  ("Realtek").  All  rights, including but not   */
+   4          /*   limited  to  copyrights,  patents,  trademarks, trade secrets, mask work   */
+   5          /*   rights, and other similar rights and interests, are reserved to Realtek.   */
+   6          /*   Without  prior  written  consent  from  Realtek,  copying, reproduction,   */
+   7          /*   modification,  distribution,  or  otherwise  is strictly prohibited. The   */
+   8          /*   Software  shall  be  kept  strictly  in  confidence,  and  shall  not be   */
+   9          /*   disclosed to or otherwise accessed by any third party.                     */
+  10          /*   c<2003> - <2010>                                                           */
+  11          /*   The Software is provided "AS IS" without any warranty of any kind,         */
+  12          /*   express, implied, statutory or otherwise.                                  */
+  13          /********************************************************************************/
+  14          
+  15          //----------------------------------------------------------------------------------------------------
+  16          // ID Code      : Main.c No.0000
+  17          // Update Note  :
+  18          //----------------------------------------------------------------------------------------------------
+  19          
+  20          
+  21          #define __MAIN__
+  22          
+  23          #include "Common\Header\Include.h"
+  24          
+  25          //--------------------------------------------------
+  26          // Main Process
+  27          //--------------------------------------------------
+  28          
+  29          void LSIintial(void)
+  30          {
+  31   1      
+  32   1      pData[0]=0x03;          
+  33   1      CI2cWrite(LS_LINE, 0x92, 0x00, 1, pData);
+  34   1      pData[0]=0;
+  35   1      
+  36   1      CI2cRead(LS_LINE, 0x92, 0x00, 1, pData);
+  37   1      
+  38   1      #if  _DEBUG_MESSAGE_SUPPORT
+  39   1      
+  40   1      CDebugMessage("pdata[0]_0", pData[0]);
+  41   1      #endif
+  42   1      pData[0]=0;
+  43   1      
+  44   1      }
+  45          
+  46          void LSHandler(void)
+  47          {
+  48   1              WORD Lumdelta=0;
+  49   1              BYTE i,j;
+  50   1              WORD tBKLIT_DICOMlumi[11];//LSLUMITABLE SJP20110625
+  51   1              tBKLIT_DICOMlumi[0] = stLSlumiData.DICOM350;
+  52   1              tBKLIT_DICOMlumi[1]=    stLSlumiData.DICOM400;
+  53   1              tBKLIT_DICOMlumi[2]=    stLSlumiData.DICOM450;
+  54   1              tBKLIT_DICOMlumi[3]=stLSlumiData.DICOM500;
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 2   
+
+  55   1              tBKLIT_DICOMlumi[4]=stLSlumiData.DICOM550;
+  56   1              tBKLIT_DICOMlumi[5]=stLSlumiData.DICOM600;
+  57   1              tBKLIT_DICOMlumi[6]=stLSlumiData.DICOM650;
+  58   1              tBKLIT_DICOMlumi[7]=    stLSlumiData.DICOM700;
+  59   1              tBKLIT_DICOMlumi[8]=stLSlumiData.DICOM500;
+  60   1              tBKLIT_DICOMlumi[9]=stLSlumiData.DICOM500;
+  61   1              tBKLIT_DICOMlumi[10]=stLSlumiData.DICOM500;
+  62   1              
+  63   1              CI2cRead(LS_LINE, 0x92, 0x0C, 1, pData);
+  64   1              TempLumValue=pData[0];
+  65   1              pData[1]=pData[0];
+  66   1              pData[0]=0;
+  67   1              CI2cRead(LS_LINE, 0x92, 0x0D, 1, pData);
+  68   1              TempLumValue=pData[0]<<8|TempLumValue;
+  69   1              
+  70   1              
+  71   1      #if  _DEBUG_MESSAGE_SUPPORT
+  72   1                                                 
+  73   1      //                                                                 CDebugMessage("_time_pdata[0]", pData[0]);
+  74   1      //                                                                 CDebugMessage("pData[0]",pData[0]);
+  75   1      #endif
+  76   1              
+  77   1              pData[0]=0;
+  78   1              pData[1]=0;
+  79   1              
+  80   1      #if  _DEBUG_MESSAGE_SUPPORT
+  81   1                       CDebugMessage("TempLumValue", TempLumValue);
+  82   1                       CDebugMessage("stSystemData.BackLight_original", stSystemData.BackLight);
+  83   1                       CDebugMessage("tBKLIT_DICOMlumi[stConBriData.Dicom]",tBKLIT_DICOMlumi[stConBriData.Dicom]);                                                             
+  84   1      #endif
+  85   1      if(bData<20)
+  86   1      {
+  87   2      if(TempLumValue<100)
+  88   2              {       
+  89   3                              bData++;
+  90   3                              if(bData==10)
+  91   3                      {       
+  92   4                              CModeResetMode();
+  93   4                      }
+  94   3                      
+  95   3              }
+  96   2      }
+  97   1      if(TempLumValue>100)
+  98   1      {
+  99   2              if(TempLumValue<tBKLIT_DICOMlumi[stConBriData.Dicom])
+ 100   2      
+ 101   2                     {
+ 102   3                              Lumdelta=tBKLIT_DICOMlumi[stConBriData.Dicom]-TempLumValue;
+ 103   3      #if  _DEBUG_MESSAGE_SUPPORT
+ 104   3                                               
+ 105   3      //                      CDebugMessage("LumdeltaLumdelta<", Lumdelta);                                                            
+ 106   3      #endif
+ 107   3                              if(Lumdelta>1)//sjp20110804
+ 108   3                                      {
+ 109   4                                              if(stSystemData.BackLight>0x02)
+ 110   4                                                      {
+ 111   5                                                      if(Lumdelta>500&&stSystemData.BackLight>60)
+ 112   5                                                              {
+ 113   6                                                              stSystemData.BackLight=stSystemData.BackLight-40;
+ 114   6                                                              COsdLeftSubBrightness();
+ 115   6                                                              }
+ 116   5                                                      else if(Lumdelta>200&&stSystemData.BackLight>32)
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 3   
+
+ 117   5                                                              {
+ 118   6                                                              stSystemData.BackLight=stSystemData.BackLight-30;
+ 119   6                                                              COsdLeftSubBrightness();
+ 120   6                                                              }
+ 121   5                                                      
+ 122   5                                                      else if(Lumdelta>100&&stSystemData.BackLight>16)
+ 123   5                                                              {
+ 124   6                                                              stSystemData.BackLight=stSystemData.BackLight-8;
+ 125   6                                                              COsdLeftSubBrightness();
+ 126   6                                                              }
+ 127   5                                                              
+ 128   5                                                      else if(Lumdelta>50&&stSystemData.BackLight>10)
+ 129   5                                                              {
+ 130   6                                                              stSystemData.BackLight=stSystemData.BackLight-3;
+ 131   6                                                              COsdRightSubBrightness();
+ 132   6                                                              if(ucCurrState==_ACTIVE_STATE)
+ 133   6                                                                         for(j=0;j<30;j++)
+ 134   6                                                                              {
+ 135   7                                                                                                              
+ 136   7                                                                              for(i=0;i<20;i++)       
+ 137   7                                                                                      {
+ 138   8                                                                                              Delay5us();                                                     
+ 139   8                                                                                              Delay5us();                                                     
+ 140   8                                                                                              Delay5us();                                                     
+ 141   8                                                                                              Delay5us();
+ 142   8                                                                                              Delay5us();
+ 143   8                                                                                              Delay5us();
+ 144   8                                                                                              Delay5us();                                                     
+ 145   8                                                                                              
+ 146   8                                                                                      }
+ 147   7                                                                              }
+ 148   6      
+ 149   6      
+ 150   6      
+ 151   6                                                              
+ 152   6                                                              }
+ 153   5                                                              
+ 154   5                                                      else 
+ 155   5                                                              {
+ 156   6                                                              stSystemData.BackLight=stSystemData.BackLight-1;
+ 157   6                                                              COsdRightSubBrightness();
+ 158   6                                                              if(ucCurrState==_ACTIVE_STATE)
+ 159   6                                                                         for(j=0;j<50;j++)
+ 160   6                                                                              {
+ 161   7                                                                                                              
+ 162   7                                                                              for(i=0;i<20;i++)       
+ 163   7                                                                                      {
+ 164   8                                                                                              Delay5us();                                                     
+ 165   8                                                                                              Delay5us();                                                     
+ 166   8                                                                                              Delay5us();                                                     
+ 167   8                                                                                              Delay5us();
+ 168   8                                                                                              Delay5us();
+ 169   8                                                                                      }
+ 170   7                                                                              }
+ 171   6      
+ 172   6                                                              
+ 173   6                                                              }
+ 174   5      #if  _DEBUG_MESSAGE_SUPPORT
+ 175   5      //                       
+ 176   5      //                                               CDebugMessage("stSystemData.BackLight", stSystemData.BackLight);                                                                                                                
+ 177   5      #endif
+ 178   5                                                      
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 4   
+
+ 179   5                                                      COsdRightSubBrightness();
+ 180   5                                                      if(ucCurrState==_ACTIVE_STATE)
+ 181   5                                                             for(j=0;j<20;j++)
+ 182   5                                                              {
+ 183   6                                                                                                      
+ 184   6                                                                      for(i=0;i<20;i++)       
+ 185   6                                                                              {
+ 186   7                                                                                      Delay5us();                                                             
+ 187   7                                                                                      Delay5us();                                                             
+ 188   7                                                                                      Delay5us();                                                             
+ 189   7                                                                                      Delay5us();
+ 190   7                                                                                      Delay5us();
+ 191   7                                                                                      Delay5us();
+ 192   7                                                                                      Delay5us();                                                     
+ 193   7                                                                                      
+ 194   7                                                                              }
+ 195   6                                                              }
+ 196   5                                                              
+ 197   5      
+ 198   5                                                      }
+ 199   4                                              }
+ 200   3                                              
+ 201   3                              /*      else if(Lumdelta<=1)//sjp20110812
+ 202   3                                              {
+ 203   3                                                        
+ 204   3                                                      ucOsdEventMsg = _SAVE_EE_SYSTEMDATA_MSG;
+ 205   3                                              }       */                      
+ 206   3              }
+ 207   2              
+ 208   2              else 
+ 209   2              {
+ 210   3      
+ 211   3                      Lumdelta=TempLumValue-tBKLIT_DICOMlumi[stConBriData.Dicom];
+ 212   3      #if  _DEBUG_MESSAGE_SUPPORT
+ 213   3                                                               
+ 214   3      //                                                                               CDebugMessage("LumdeltaLumdelta>", Lumdelta);                                                                           
+ 215   3      #endif
+ 216   3                      if(Lumdelta>1)//sjp20110812
+ 217   3                              {
+ 218   4                              /*if((stSystemData.BackLight==0)&&(TempLumValue<tBKLIT_DICOMlumi[7]))
+ 219   4                                      {
+ 220   4                                      ;
+ 221   4                                      
+ 222   4                                      } 
+ 223   4                                      
+ 224   4                      else
+ 225   4                                      {*/
+ 226   4                                      if(stSystemData.BackLight<4093)
+ 227   4                                              {
+ 228   5                                                      if(Lumdelta>400&&stSystemData.BackLight<4051)   
+ 229   5                                                              {
+ 230   6                                                              stSystemData.BackLight=stSystemData.BackLight+40;
+ 231   6                                                              COsdLeftSubBrightness();
+ 232   6                                                              }
+ 233   5                                                      
+ 234   5                                                      else if(Lumdelta>200&&stSystemData.BackLight<4051)
+ 235   5                                                              {
+ 236   6                                                              stSystemData.BackLight=stSystemData.BackLight+30;
+ 237   6                                                              COsdLeftSubBrightness();
+ 238   6                                                              }
+ 239   5                                                      
+ 240   5                                                      else if(Lumdelta>100&&stSystemData.BackLight<4075)
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 5   
+
+ 241   5                                                              {
+ 242   6                                                              stSystemData.BackLight=stSystemData.BackLight+8;
+ 243   6                                                              COsdLeftSubBrightness();
+ 244   6                                                              }
+ 245   5                                                      
+ 246   5                                                      else if(Lumdelta>50&&stSystemData.BackLight<4085)
+ 247   5                                                              {
+ 248   6                                                              stSystemData.BackLight=stSystemData.BackLight+3;
+ 249   6                                                              COsdLeftSubBrightness();
+ 250   6      
+ 251   6                                                              if(ucCurrState==_ACTIVE_STATE)
+ 252   6                                                              for(j=0;j<30;j++)
+ 253   6                                                              {
+ 254   7                                                                              
+ 255   7                                                                      for(i=0;i<20;i++)       
+ 256   7                                                                      {
+ 257   8                                                                              Delay5us();                                                     
+ 258   8                                                                              Delay5us();                                                     
+ 259   8                                                                              Delay5us();                                                     
+ 260   8                                                                              Delay5us();
+ 261   8                                                                              Delay5us();                                                     
+ 262   8                                                                              Delay5us();
+ 263   8                                                                              Delay5us();
+ 264   8                                                                      }
+ 265   7                                                              }
+ 266   6      
+ 267   6                                                              }
+ 268   5                                                      
+ 269   5                                                      else 
+ 270   5                                                              {
+ 271   6                                                              stSystemData.BackLight=stSystemData.BackLight+1;
+ 272   6                                                              COsdLeftSubBrightness();
+ 273   6      
+ 274   6                                                              if(ucCurrState==_ACTIVE_STATE)
+ 275   6                                                              for(j=0;j<50;j++)
+ 276   6                                                              {
+ 277   7                                                                              
+ 278   7                                                                      for(i=0;i<20;i++)       
+ 279   7                                                                      {
+ 280   8                                                                              Delay5us();                                                     
+ 281   8                                                                              Delay5us();                                                     
+ 282   8                                                                              Delay5us();                                                     
+ 283   8                                                                              Delay5us();
+ 284   8                                                                              Delay5us();                                                     
+ 285   8                                                                              Delay5us();
+ 286   8                                                                              Delay5us();
+ 287   8                                                                      }
+ 288   7                                                              }
+ 289   6                                                              }
+ 290   5      
+ 291   5      
+ 292   5      
+ 293   5                      //                      COsdLeftSubBrightness();
+ 294   5                                              
+ 295   5                                              if(ucCurrState==_ACTIVE_STATE)
+ 296   5                                              for(j=0;j<20;j++)
+ 297   5                                              {
+ 298   6                                                              
+ 299   6                                                      for(i=0;i<20;i++)       
+ 300   6                                                      {
+ 301   7                                                              Delay5us();                                                     
+ 302   7                                                              Delay5us();                                                     
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 6   
+
+ 303   7                                                              Delay5us();                                                     
+ 304   7                                                              Delay5us();
+ 305   7                                                              Delay5us();     
+ 306   7                                                              Delay5us();
+ 307   7                                                              Delay5us();                                                     
+ 308   7                                                      }
+ 309   6                                              }
+ 310   5      
+ 311   5                                              }
+ 312   4                                         
+ 313   4                              //}
+ 314   4                              }
+ 315   3              /*      else if(Lumdelta<=1)//sjp20110812
+ 316   3                              {
+ 317   3                                      ucOsdEventMsg = _SAVE_EE_COLORPROC0_MSG;
+ 318   3                              }*/
+ 319   3      
+ 320   3      
+ 321   3      
+ 322   3              }
+ 323   2      }
+ 324   1      
+ 325   1      }
+ 326          
+ 327          
+ 328          
+ 329          void main(void)
+ 330          {
+ 331   1          do
+ 332   1          {
+ 333   2              CMainSystemInitial();
+ 334   2               LSIintial();
+ 335   2               
+ 336   2      #if _DEBUG_MESSAGE_SUPPORT
+ 337   2      //       CDebugMessage("stSystemData.SearchIndex_main", stSystemData.SearchIndex);
+ 338   2      #endif
+ 339   2      #if _DEBUG_MESSAGE_SUPPORT
+ 340   2      //               CDebugMessage("stSystemData.SearchIndex_maindefault", stSystemData.SearchIndex);
+ 341   2      #endif
+ 342   2      #if _DEBUG_MESSAGE_SUPPORT
+ 343   2      //               CDebugMessage("stSystemData.SearchIndex_load", stSystemData.SearchIndex);
+ 344   2      //              CDebugMessage("stSystemData.BackLight_load", stSystemData.BackLight);
+ 345   2      #endif
+ 346   2      #if _DEBUG_MESSAGE_SUPPORT
+ 347   2               CDebugMessage("V4.1_2012 02 29", 0);
+ 348   2      
+ 349   2      #endif
+ 350   2      
+ 351   2      
+ 352   2              while(CMainDetectSystemPower() && CMainResetCheck())
+ 353   2              {
+ 354   3              
+ 355   3                  CMiscIspDebugProc();
+ 356   3      
+ 357   3                  CTimerHandler();
+ 358   3                  CKeyHandler();
+ 359   3              //MCU_WATCHDOG_TIMER_FFEA |= 0x40;
+ 360   3      //          CDebugMessage("ucTimer0Cnt2=", ucTimer0Cnt2);
+ 361   3                      if(!bAgeModeOn)
+ 362   3                              CModeHandler();
+ 363   3                              
+ 364   3                  COsdHandler();
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 7   
+
+ 365   3      
+ 366   3      
+ 367   3      
+ 368   3      #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+              
+              #if (_DP_PHYCTS_STEPBYSTEP == _ON)
+                          CDPPHYCTSSTEP();
+              #endif
+              
+              #endif
+ 375   3      
+ 376   3      
+ 377   3      #if(_DDCCI_SUPPORT == _ON)
+                          CDdcDDCCI_Command();
+              #endif
+ 380   3      
+ 381   3                 if((ucCurrState==_ACTIVE_STATE)&&(bTimer01minCtrl==_TRUE))   
+ 382   3                      {
+ 383   4                      #if _DEBUG_MESSAGE_SUPPORT
+ 384   4                      //CDebugMessage("111111111111111",bData);
+ 385   4                      #endif
+ 386   4                         LSHandler();
+ 387   4                      //bTimer01minCtrl=_FALSE;
+ 388   4                      }
+ 389   3      
+ 390   3              }
+ 391   2          }
+ 392   1          while(_TRUE);
+ 393   1      }
+ 394          
+ 395          
+ 396          //--------------------------------------------------
+ 397          // Global Variable Initial
+ 398          //--------------------------------------------------
+ 399          void CMainGlobalVarInitial(void)
+ 400          {
+ 401   1          //===============================//
+ 402   1          //      xData of Adjust.h        //
+ 403   1          //===============================//
+ 404   1          ucAdjustCtrl = 0;
+ 405   1          usPEValue = 120;
+ 406   1          g_bAutoPositionH = _FALSE;
+ 407   1          g_ulPllIHTotal = 0;
+ 408   1          g_ulPllDivider = 0;
+ 409   1          sAdjustHue = 0;
+ 410   1          sAdjustSat = 0;
+ 411   1      
+ 412   1          //===============================//
+ 413   1          //      xData of Uart.h          //
+ 414   1          //===============================//
+ 415   1      #if(_DEBUG_TOOL == _RS232)
+                  bUartCommandStart = _FALSE;
+                  bUartCommandSuccess = _FALSE;
+                  bDebugModeEnable = _FALSE;
+                  ucUartCommandNum = 0;
+                  pUartData[0] = 0;
+                  pUartData[1] = 0;
+                  pUartData[2] = 0;
+                  pUartData[3] = 0;
+                  pUartData[4] = 0;
+                  pUartData[5] = 0;
+                  pUartData[6] = 0;
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 8   
+
+                  pUartData[7] = 0;
+                  ucPageInfo = 0;
+              #endif
+ 430   1      
+ 431   1          //===============================//
+ 432   1          //      xData of Auto.h          //
+ 433   1          //===============================//
+ 434   1          g_usHStartPos = 0;
+ 435   1          g_usHEndPos = 0;
+ 436   1          g_usVStartPos = 0;
+ 437   1          g_usVEndPos = 0;
+ 438   1          g_ucAdcPGA = 0;
+ 439   1      
+ 440   1          //===============================//
+ 441   1          //      xData of Hdmi.h          //
+ 442   1          //===============================//
+ 443   1      #if(_HDMI_SUPPORT == _ON)
+                  ucHdmiCtrl = 0;
+                  ucAudioRate = 0;
+              
+              #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2545LR))
+              #if(_AUDIO_SUPPORT == _ON)
+                  g_usHDMILockedFreq = 0;
+              #endif
+              #endif
+              
+              #endif
+ 454   1      
+ 455   1          //===============================//
+ 456   1          //      xData of Memory.h        //
+ 457   1          //===============================//
+ 458   1      #if((_OD_SUPPORT == _ON) || (_FRC_SUPPORT == _ON))
+                  g_ucMemoryCtrl = 0;
+              #endif
+ 461   1      
+ 462   1          //===============================//
+ 463   1          //      xData of Sync.h          //
+ 464   1          //===============================//
+ 465   1          g_ucIDCode = 0;
+ 466   1          g_usTMDSFreq = 0;
+ 467   1          g_usTMDSFreq0 = 0;
+ 468   1          g_usTMDSFreq1 = 0;
+ 469   1          g_usDVITMDSFreq = 0;
+ 470   1      
+ 471   1          //===============================//
+ 472   1          //      xData of Mode.h          //
+ 473   1          //===============================//
+ 474   1          ucCurrState = _PWOFF_STATE;
+ 475   1          ucModeControl = 0;
+ 476   1          ucEvent0 = 255;
+ 477   1          ucEvent1 = 255;
+ 478   1          g_bCheckHDCP = _FALSE;
+ 479   1          ucModeFound = 0;
+ 480   1          g_usHStartBias = 0;
+ 481   1          g_ucVStartBias = 0;
+ 482   1          ucSourceControl = 0;
+ 483   1          g_ucTimerCnt = 0;
+ 484   1      
+ 485   1      // V012 Modify 20100316 Start
+ 486   1      // V012 Patch Note (2) : Overscan function update.
+ 487   1      /*
+ 488   1      #if(_HDMI_OVERSCAN == _ON)
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 9   
+
+ 489   1          ucOverScanH  = 0;
+ 490   1          ucOverScanV  = 0;
+ 491   1      #endif
+ 492   1      */
+ 493   1      #if(_OVERSCAN_SUPPORT == _ON)
+ 494   1          CLR_OVERSCAN_STATUS();
+ 495   1          CLR_OVERSCAN_SUCCESS_STATUS();
+ 496   1          CLR_OVERSCAN_CAPTURE_BACKUP_VALUE();
+ 497   1          CLR_OVERSCAN_IV2DVDELAY_BACKUP_VALUE();
+ 498   1          g_ucOverScanH = 0;
+ 499   1          g_ucOverScanV = 0;
+ 500   1          g_usCaptureStartH = 0;
+ 501   1          g_usCaptureStartV = 0;
+ 502   1          g_usOldIHWidth = 0;
+ 503   1          g_usOldIVHeight = 0;
+ 504   1          g_ucIv2DvModify = 0;
+ 505   1      #endif
+ 506   1      // V012 Modify 20100316 End
+ 507   1      
+ 508   1          //===============================//
+ 509   1          //      xData of Power.h         //
+ 510   1          //===============================//
+ 511   1          ucPowerControl = 0;
+ 512   1      
+ 513   1          //===============================//
+ 514   1          //      xData of Source.h        //
+ 515   1          //===============================//
+ 516   1          g_ucInputInfo = 0;
+ 517   1          g_ucInputConnect = 0;
+ 518   1          g_ucSearchIndex = 0;
+ 519   1          g_ucSearchTimes = 0;
+ 520   1          g_ucSearchFinish = 0;
+ 521   1          g_ucModeStableCount = 0;
+ 522   1      
+ 523   1          //===============================//
+ 524   1          //      xData of Realtek_Key.h   //
+ 525   1          //===============================//
+ 526   1      #if(_OSD_TYPE == _REALTEK_OSD)
+ 527   1          ucKeyControl = 0;
+ 528   1          ucKeyMessage = 0;
+ 529   1          ucKeyStatePrev = 0;
+ 530   1          ucKeyStateCurr = 0;
+ 531   1      #endif
+ 532   1      
+ 533   1          //===============================//
+ 534   1          //      xData of Debug.h         //
+ 535   1          //===============================//
+ 536   1      #if((_DEBUG_MESSAGE_SUPPORT == _ON) && ((_DEBUG_TOOL == _ISP_FOR_RTD2120) || (_DEBUG_TOOL == _ISP_FOR_EMBE
+             -DDED)))
+ 537   1          /*
+ 538   1          g_bDebugMessageEven = _FALSE;
+ 539   1          */
+ 540   1          g_bDebugMessageEven = _INITIAL_MESSAGE_ACK;
+ 541   1          g_bDebugMessageStart = _FALSE;
+ 542   1          pDebugMessageBUF[0] = 0;
+ 543   1          pDebugMessageBUF[1] = 0;
+ 544   1          pDebugMessageBUF[2] = 0;
+ 545   1          pDebugMessageBUF[3] = 0;
+ 546   1      #endif
+ 547   1      
+ 548   1      #if((_DEBUG_MESSAGE_SUPPORT == _ON) && ((_DEBUG_TOOL == _ISP_FOR_RTD2120)))
+                  TxTemp = 0;
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 10  
+
+                  bDataOutEnd = _FALSE;
+              #endif
+ 552   1      
+ 553   1      #if(_DEBUG_TOOL == _ISP_FOR_EMBEDDED)
+ 554   1          g_usDebugCount = 0;
+ 555   1      #endif
+ 556   1      
+ 557   1      #if((_DEBUG_MESSAGE_SUPPORT == _ON) && ((_DEBUG_TOOL == _ISP_FOR_EMBEDDED)))
+ 558   1          g_bFwHalt = _FALSE;
+ 559   1          g_usFilterPro = 0;
+ 560   1      #endif
+ 561   1      
+ 562   1          //===============================//
+ 563   1          //      xData of DisplayPort.h   //
+ 564   1          //===============================//
+ 565   1      #if(_DP_SUPPORT == _ON)
+                  g_ucDisplayPortCtrl = 0;
+                  g_ucDisplayPortStatus = 0;
+                  g_ucDisplayPortLtPreStatus = 10;
+              
+                  g_ucLane01Status = 0;
+                  g_ucLane23Status = 0;
+                  g_ucAdjustRequestL01 = 0;
+                  g_ucAdjustRequestL23 = 0;
+              
+                  g_ucDpPowerStatus = 0;
+              
+                  g_ucFifoFailCount = 0;
+                  g_ucPhyUnstableCount = 0;
+                  g_ucMisAlignCount = 0;
+                  g_ucChangeDisplayCount = 0;
+                  g_ucDpResetCount = 0;
+              
+                  g_ulDpMvidValue = 0;
+                  g_usDpHactive = 0;
+                  g_usDpVactive = 0;
+                  g_ucDpMsaMisc = 0;
+                  g_ucDpRate = 0;
+                  g_ucDpLaneCount = 0;
+                  g_ucTP1Error = 0;
+                  g_ucTP1Decode = 0;
+                  g_ucTP1Decode1 = 0;
+                  g_ucTP1Decode2 = 0;
+                  g_ucCrcLane1 = 0;
+                  g_ucCrcLane2 = 0;
+                  g_ucTrainingLaneSet = 0;
+                  g_ucButInt = 0;
+                  g_ucAlignStatus = 0;
+              
+                  g_ucRegPageBackUp = 0;
+                  g_ucRegIntBackUp = 0;
+                  g_ucRegAddrBackUp = 0;
+                  g_ucRegPortBackUp[0] = 0;
+                  g_ucRegPortBackUp[1] = 0;
+                  g_ucRegPortBackUp[2] = 0;
+                  g_ucRegPortBackUp[3] = 0;
+              #endif // End of #if(_DP_SUPPORT == _ON)
+ 607   1      
+ 608   1          //===============================//
+ 609   1          //      xData of DCR.h           //
+ 610   1          //===============================//
+ 611   1      #if(_DCR_MODE == _DCR_TYPE_1)
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 11  
+
+                  g_usHorBoundary = 0;
+                  g_usVerBoundary = 0;
+                  g_usRGBInfo = 0;
+                  g_ucPreBacklightPWM = 255;
+                  g_ucPreDCCLum = 0;
+                  g_ucDcrCtrl = 0;
+                  g_ucDCRPercent = 100;  // Max 100
+              
+              #elif(_DCR_MODE == _DCR_TYPE_2)
+                  g_usHorBoundary = 0;
+                  g_usVerBoundary = 0;
+                  g_usRGBInfo = 0;
+                  g_ucPreBacklightPWM = 255;
+                  g_ucPreDCCLum = 0;
+                  g_ucDcrCtrl = 0;
+                  g_ucDCRPercent = 100;  // Max 100
+              
+              #elif(_DCR_MODE == _DCR_TYPE_3)
+                  g_ucDcrTargetPre = 0;
+                  g_ucDcrTargetPre1 = 0;
+                  g_ucDcrTemp = 0;
+                  g_ucDcrPwm = 0;
+                  g_ucDcrCnt = 0;
+                  g_usDcrStep = 0;
+                  g_ucDcrTimer = 0;
+                  g_ucDcrCtrl = 0;
+                  g_ucDcrCurrentPWM = 0;
+              
+                  g_ucDCRPercent = 100;
+                  g_usDCR5MinTimer = 0;
+              
+              #endif //End of #if(_DCR_MODE == _DCR_TYPE_1)
+ 644   1      
+ 645   1      
+ 646   1          //===============================//
+ 647   1          //    xData of Realtek_Ddc.h     //
+ 648   1          //===============================//
+ 649   1      #if(_DDCCI_SUPPORT == _ON)
+                  for(pData[0] = 0; pData[0] < _DDCCI_RXBUF_LENGTH; pData[0]++)
+                  {
+                      g_ucDdcciRxBuf[pData[0]] = 0;
+                  }
+              
+                  for(pData[0] = 0; pData[0] < _DDCCI_TXBUF_LENGTH; pData[0]++)
+                  {
+                      g_ucDdcciTxBuf[pData[0]] = 0;
+                  }
+              
+                  g_ucDdcciRedBlackLevel = 0x50;
+                  g_ucDdcciGreenBlackLevel = 0x50;
+                  g_ucDdcciBlueBlackLevel = 0x50;
+                  g_ucDdcciTxCount = 0;
+                  g_ucDdcciNewControlValue = 1;
+                  g_ucColorTempUnSupport = 0;
+                  g_RxStatus = _DDC2B_CLEAR;
+              
+                  g_ucDdcciDP_Ready = 0;
+                  ucDdcciDP_Pending = 0;
+                  ucDdcciDP_PreVCP = 1;
+                  ucDdcciDP_Read = 0;
+                  ucDdcciDP_ReplyDone = 0;
+                  ucDdcciDP_ReSend = 0;
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 12  
+
+                  ucDdcciDP_PreOP = 0;
+                  ucDdcciDP_OverRead = 0;
+                  g_ucActiveInputSourceType = 0;
+              #endif //End of #if(_DDCCI_SUPPORT == _ON)
+ 678   1      
+ 679   1          // V013 System Patch Note (3) 20100429 Modify Start
+ 680   1          // Patch Reason : Initial stModeInfo XDATA variables.
+ 681   1      
+ 682   1      // V013 TMDS Patch Note (16) 20100422 Modify Start
+ 683   1      // Patch Reason : Solve DVI Interlace Issue.
+ 684   1          stModeInfo.Polarity = 0;
+ 685   1          stModeInfo.IHCount = 0;
+ 686   1          stModeInfo.IHFreq = 0;
+ 687   1          stModeInfo.IVTotal = 0;
+ 688   1          stModeInfo.IVFreq = 0;
+ 689   1          stModeInfo.IHWidth = 0;
+ 690   1          stModeInfo.IVHeight = 0;
+ 691   1          stModeInfo.IHSyncPulseCount = 0;
+ 692   1          stModeInfo.IHStartPos = 0;
+ 693   1          stModeInfo.IVStartPos = 0;
+ 694   1          stModeInfo.IVSyncPulseCount = 0;
+ 695   1      // V013 TMDS Patch Note (16) 20100422 Modify End
+ 696   1      
+ 697   1          stModeInfo.ModeCurr = _MODE_NOSIGNAL;
+ 698   1      
+ 699   1          stModeInfo.IHTotal = 0;
+ 700   1          // V013 System Patch Note (3) 20100429 Modify End
+ 701   1      
+ 702   1          // V012 Modify 20100402 Start
+ 703   1          // V012 Patch Note (29) : Fix the inaccurate Vfreq in OSD with SOG HORV/HEORV sync type.
+ 704   1          g_usCaptureStart = 0;
+ 705   1          g_usVTotalTemp = 0;
+ 706   1          g_ucVSyncPulseWidthTemp = 0;
+ 707   1          g_ucCoastLineCnt = 0;
+ 708   1          // V012 Modify 20100402 End
+ 709   1      
+ 710   1          // V013 VGA Patch Note (10) 20100416 Modify Start
+ 711   1          // Patch Reason : Support Auto Config For Yuv Color.
+ 712   1      #if(_YUV_AUTO_CONFIG_SUPPORT == _ON)
+ 713   1          g_bYuvRgbFlag = _FALSE;
+ 714   1      #endif
+ 715   1          // V013 VGA Patch Note (10) 20100416 Modify End
+ 716   1      }
+ 717          
+ 718          //--------------------------------------------------
+ 719          // System Initial
+ 720          //--------------------------------------------------
+ 721          void CMainSystemInitial(void)
+ 722          {
+ 723   1          // Initial MCU
+ 724   1          CMcuInitial();
+ 725   1      
+ 726   1          // Initial Xdata value
+ 727   1          CMainGlobalVarInitial();
+ 728   1      
+ 729   1          // Initial DDC/CI settings
+ 730   1      #if((_DEBUG_TOOL == _ISP_FOR_RTD2120) || (_DEBUG_TOOL == _ISP_FOR_EMBEDDED) || (_DEBUG_TOOL == _RS232))
+ 731   1          CDdcciInitial();
+ 732   1      #endif
+ 733   1      
+ 734   1      
+ 735   1      #if(_D0_INPUT_PORT_TYPE == _D0_DP_PORT)
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 13  
+
+                  D0_HPD_LOW();
+              #elif(_D1_INPUT_PORT_TYPE == _D1_DP_PORT)
+                  D1_HPD_LOW();
+              #endif
+ 740   1      
+ 741   1          // Initial I/O state
+ 742   1          CMainIOInitial();
+ 743   1      
+ 744   1          // Initial timer events
+ 745   1          CTimerInitialTimerEvent();
+ 746   1      
+ 747   1      // Check Eeprom or Flash and load default settings
+ 748   1      #if(_MEMORY_LOCATION == _FLASH)
+                  CFlashStartupCheck();
+              #else
+ 751   1          CEepromStartupCheck();
+ 752   1      #endif
+ 753   1      
+ 754   1          // If system power detection is fail, we will be locked here.
+ 755   1          while(!CMainDetectSystemPower())
+ 756   1          {
+ 757   2              ;
+ 758   2          }
+ 759   1      
+ 760   1          // Initial source settings
+ 761   1          CSourceInitialSetting();
+ 762   1      
+ 763   1          // Initial scaler settings
+ 764   1          CScalerInitial();
+ 765   1      
+ 766   1          // Get ID Code
+ 767   1          CMainGetIDCode();
+ 768   1      
+ 769   1      
+ 770   1          // Initial key scan status
+ 771   1          CKeyInitial();
+ 772   1      
+ 773   1          // Initial user settings
+ 774   1          CMainUserInitial();
+ 775   1      
+ 776   1          // Initial video settings
+ 777   1      #if(_VIDEO_SUPPORT == _ON)
+                  CVideoInitial();
+              #endif
+ 780   1      
+ 781   1      
+ 782   1          // Initial uart settings
+ 783   1      #if(_DEBUG_TOOL == _RS232)
+                  CUartInitial();
+              #endif
+ 786   1      
+ 787   1      #if(_DCR_MODE == _DCR_TYPE_3)
+                  CDcrInitial();
+              #endif
+ 790   1      
+ 791   1      #if(_DDCCI_SUPPORT == _ON)
+                  CDebugInitial();
+              #endif
+ 794   1      }
+ 795          
+ 796          //--------------------------------------------------
+ 797          // Description  : I/O Initial
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 14  
+
+ 798          // Input Value  : None
+ 799          // Output Value : None
+ 800          //--------------------------------------------------
+ 801          void CMainIOInitial(void)
+ 802          {
+ 803   1          CMiscSetPinShare();
+ 804   1          CPowerPanelPowerOff();
+ 805   1          CPowerLightPowerOff();
+ 806   1      
+ 807   1      //#if(_PANEL_STYLE == _PANEL_RSDS)
+ 808   1          CScalerSetDataPortByte(_TCON_ADDR_PORT_8B, _TCON_RSDS_PWR_CTL_C3, 0x03);
+ 809   1      //#endif
+ 810   1      
+ 811   1      #if(((_MCU_TYPE == _REALTEK_RTD2120) || (_MCU_TYPE == _REALTEK_RTD2122)) && (_WATCHDOG_TIMER == _ON) && (_
+             -SYSTEMPOWER_DETECT_SUPPORT == _ON))
+                  MCU_WATCHDOG_TIMER_FF36 = 0x87;
+              #endif
+ 814   1      
+ 815   1      }
+ 816          
+ 817          //--------------------------------------------------
+ 818          // Description  : Get ID Code
+ 819          // Input Value  : None
+ 820          // Output Value : None
+ 821          //--------------------------------------------------
+ 822          void CMainGetIDCode(void)
+ 823          {
+ 824   1          BYTE i = 0, ucCount = 0;
+ 825   1      
+ 826   1          for(i = 0; i < 10; i++)
+ 827   1          {
+ 828   2              // Get ID Code
+ 829   2              CScalerRead(_ID_REG_00, 1, pData, _NON_AUTOINC);
+ 830   2      
+ 831   2              if(g_ucIDCode != pData[0])
+ 832   2              {
+ 833   3                  g_ucIDCode = pData[0];
+ 834   3                  ucCount = 0;
+ 835   3              }
+ 836   2              else
+ 837   2              {
+ 838   3                  ucCount++;
+ 839   3              }
+ 840   2      
+ 841   2              if(ucCount == 2)
+ 842   2              {
+ 843   3                  break;
+ 844   3              }
+ 845   2          }
+ 846   1      
+ 847   1          if(i >= 10)
+ 848   1          {
+ 849   2              g_ucIDCode = 0;
+ 850   2          }
+ 851   1      }
+ 852          
+ 853          
+ 854          //--------------------------------------------------
+ 855          // Description  : User Initial
+ 856          // Input Value  : None
+ 857          // Output Value : None
+ 858          //--------------------------------------------------
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 15  
+
+ 859          void CMainUserInitial(void)
+ 860          {
+ 861   1      #if((_SCALER_TYPE == _RTD2545LR) && ((_MCU_TYPE == _REALTEK_RTD2120) || (_MCU_TYPE == _REALTEK_RTD2122)))
+                  CScalerPageSelect(_PAGE0);
+                  //ADC Clock/SOG0/S0G1/Bandgap Power Off
+                  CScalerSetBit(_P0_ADC_POWER_C6, ~(_BIT6 | _BIT5 | _BIT4 | _BIT3), 0);
+              
+                  // Pin_share Setting, XOUT (P6.6) GPIO Pin
+                  if(GET_POWERSTATUS())
+                  {
+                      MCU_PIN_SHARE2_FF02 |= 0x10;
+                  }
+                  else
+                  {
+                      MCU_PIN_SHARE2_FF02 &= 0xEF;
+                  }
+              
+              #endif
+ 877   1      
+ 878   1          COsdDispInitial();
+ 879   1      
+ 880   1          // User can make some initial settings at firmware startup
+ 881   1          CLR_PANELPOWERSTATUS();
+ 882   1          CLR_LIGHTPOWERSTATUS();
+ 883   1          CLR_FRAMESYNCSTATUS();
+ 884   1          CLR_POWERSWITCH();
+ 885   1          CLR_FIRST_ADCCLOCK();
+ 886   1          CLR_KEYREPEATENABLE();
+ 887   1      
+ 888   1      #if(_HDMI_SUPPORT == _ON)
+                  CLR_HDMIINPUT();
+              
+              #if((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD) || (_SCALER_TYPE == _RTD2545LR))
+                  // reserved
+              #else
+                  CLR_AUDIOPLLLOCKREADY();
+                  CLR_AVRESUME();
+                  CLR_AUDIOWAITINGTIMEOUT();
+              #endif
+              
+              #endif
+ 900   1      
+ 901   1          SET_FIRST_LOADFONT();
+ 902   1          CLR_INTERLACE_MODE();
+ 903   1      
+ 904   1      #if(_FRC_SUPPORT == _ON)
+                  CLR_FRCSTATUS();
+                  CLR_FRC422STATUS();
+              #if(_FIELD_MERGE_SUPPORT == _ON)
+                  CLR_FIELDMERGE_MODE();
+              #endif
+              #endif // End of #if(_FRC_SUPPORT == _ON)
+ 911   1      
+ 912   1          CLR_USE_TRANSITION_RESULT();
+ 913   1          ucCurrState = _PWOFF_STATE;
+ 914   1      }
+ 915          
+ 916          //--------------------------------------------------
+ 917          // Description  : System Power Detect
+ 918          // Input Value  : None
+ 919          // Output Value : None
+ 920          //--------------------------------------------------
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 16  
+
+ 921          bit CMainDetectSystemPower(void)
+ 922          {
+ 923   1          bit flag = 1;
+ 924   1      
+ 925   1      #if(_SYSTEMPOWER_DETECT_SUPPORT == _ON)
+              
+                  // It's an example F/W for RTD2120.
+                  MCU_ADC_CTRL_FF0B = 0x80;
+                  while((MCU_ADC_CTRL_FF0B & _BIT7) != 0x00)
+                  {
+              
+              #if(((_MCU_TYPE == _REALTEK_RTD2120) || (_MCU_TYPE == _REALTEK_RTD2122)) && (_WATCHDOG_TIMER == _ON))
+                      CTimerDelayXms(20);
+                      MCU_WATCHDOG_TIMER_FF36 = MCU_WATCHDOG_TIMER_FF36 | 0x40;
+              #endif
+                  }
+              
+                  if((bSYSTEMPOWERDETECT & 0x01) == 0x01)
+                  {
+                      flag = 1;
+                  }
+                  else
+                  {
+                      flag = 0;
+                  }
+              
+              #endif // End of #if(_SYSTEMPOWER_DETECT_SUPPORT == _ON)
+ 948   1      
+ 949   1      
+ 950   1      #if(((_MCU_TYPE == _REALTEK_RTD2120) || (_MCU_TYPE == _REALTEK_RTD2122)) && (_WATCHDOG_TIMER == _ON) && (_
+             -SYSTEMPOWER_DETECT_SUPPORT == _ON))
+              
+                  if(flag)
+                  {
+                      MCU_WATCHDOG_TIMER_FF36 = 0x00;
+                      return _TRUE;
+              
+                  }
+                  else
+                  {
+                      CTimerDelayXms(20);
+                      MCU_WATCHDOG_TIMER_FF36 = MCU_WATCHDOG_TIMER_FF36 | 0x40;
+                      return _FALSE;
+                  }
+              
+              #else
+ 966   1      
+ 967   1          if(flag)
+ 968   1          {
+ 969   2              return _TRUE;
+ 970   2          }
+ 971   1          else
+ 972   1          {
+ 973   2              return _FALSE;
+ 974   2          }
+ 975   1      
+ 976   1      #endif  // End of #if(((_MCU_TYPE == _REALTEK_RTD2120) || (_MCU_TYPE == _REALTEK_RTD2122)) && (_WATCHDOG_T
+             -IMER == _ON) && (_SYSTEMPOWER_DETECT_SUPPORT == _ON))
+ 977   1      
+ 978   1      }
+ 979          
+ 980          //--------------------------------------------------
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 17  
+
+ 981          // Description  : Reset Check
+ 982          // Input Value  : None
+ 983          // Output Value : None
+ 984          //--------------------------------------------------
+ 985          bit CMainResetCheck(void)
+ 986          {
+ 987   1      #if(_RESET_CHECK_SUPPORT == _ON)
+              
+                  while(!GETSCALERSDIO3())
+                  {
+                      if(bSCALERSCLK)
+                      {
+                          CLRSCALERSCLK();
+                      }
+                      else
+                      {
+                          SETSCALERSCLK();
+                      }
+                  }
+              
+                  CScalerRead(_ID_REG_00, 1, pData, _NON_AUTOINC);
+              
+              #if(_SCALER_TYPE == _RTD2545LR)
+                  if((pData[0] != 0x51) || (!((bit)CScalerGetBit(_HOST_CTRL_01, _BIT6))))
+              
+              #elif(_SCALER_TYPE == _RTD2472D)
+                  if((pData[0] != 0x01) || (!((bit)CScalerGetBit(_HOST_CTRL_01, _BIT6))))
+              
+              #elif((_SCALER_TYPE == _RTD247xRD) || (_SCALER_TYPE == _RTD248xRD))
+                  if((pData[0] != 0x08) || (!((bit)CScalerGetBit(_HOST_CTRL_01, _BIT6))))
+              
+              #else
+                   No Setting !!
+              
+              #endif
+                      return _FALSE;
+              
+              #endif  // End of #if(_RESET_CHECK_SUPPORT == _ON)
+1019   1      
+1020   1          return _TRUE;
+1021   1      }
+1022          
+1023          
+1024          #if(_DDCCI_SUPPORT == _ON)
+              //--------------------------------------------------
+              // Debug initial Process
+              //--------------------------------------------------
+              void CDebugInitial(void)
+              {
+              #if(_DEBUG_TOOL == _ISP_FOR_RTD2120)
+                              if(GET_DDCCI_STATUS())
+                              {
+                                  MCU_I2C_SET_SLAVE_FF27 = 0x6e;
+                              }
+                              else
+                              {
+              #if(_DDC_CHANNEL_SEL == _VGA_DDC_CHANNEL)
+                                  MCU_I2C_SET_SLAVE_FF27 = 0x6a;
+              #else
+                                  MCU_I2C_SET_SLAVE_FF27 = 0x6b;
+              #endif
+                              }
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 18  
+
+              #endif
+              
+              #if(_DEBUG_TOOL == _ISP_FOR_EMBEDDED)
+                              if(GET_DDCCI_STATUS())
+                              {
+                                  MCU_I2C_SET_SLAVE_FF23 = 0x6e & (~_BIT0);
+                                  MCU_I2C_IRQ_CTRL_FF28 = 0x3F;
+                              }
+                              else
+                              {
+              
+              #if(_DDC_CHANNEL_SEL == _VGA_DDC_CHANNEL)
+                                  MCU_I2C_SET_SLAVE_FF23 = 0x6a;
+              #else
+                                  MCU_I2C_SET_SLAVE_FF23 = 0x6b;
+              #endif
+              
+              
+              #if(_DDC_CHANNEL_SEL == _HDMI_DDC_CHANNEL)
+                                  MCU_I2C_CHANNEL_CTRL_FF2B |= 0x01;  // From HDMI DDC
+              #elif(_DDC_CHANNEL_SEL == _DVI_DDC_CHANNEL)
+                                  MCU_I2C_CHANNEL_CTRL_FF2B &= 0xFE;
+                                  MCU_I2C_SET_SLAVE_FF23 |= 0x01;     // From DVI DDC
+              #else
+                                  MCU_I2C_CHANNEL_CTRL_FF2B &= 0xFE;
+                                  MCU_I2C_SET_SLAVE_FF23 &= 0xFE;     // From ADC DDC
+              #endif
+              
+                                  MCU_I2C_IRQ_CTRL_FF28 = 0x16;
+                              }
+              #endif  // End of #if(_DEBUG_TOOL == _ISP_FOR_EMBEDDED)
+              
+              }
+              #endif  // End of #if(_DDCCI_SUPPORT == _ON)
+1077          
+1078          
+1079          
+1080          
+1081          
+1082          /*
+1083          void LSHandler(void)
+1084          {
+1085          
+1086           
+1087           CI2cRead(LS_LINE, 0x52, 0x0C, 1, pData);
+1088           pData[1]=pData[0];
+1089           CI2cRead(LS_LINE, 0x52, 0x0D, 1, pData);
+1090           //LSData=pData[0];// |LSData; 
+1091            
+1092          #if  _DEBUG_MESSAGE_SUPPORT
+1093           
+1094           CDebugMessage("pdata[0]", pData[0]);
+1095           CDebugMessage("pdata[1]", pData[1]); 
+1096          #endif
+1097          
+1098          }
+1099          */
+1100          
+1101          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V8.02   MAIN                                                                  03/06/2012 11:28:06 PAGE 19  
+
+   CODE SIZE        =   1635    ----
+   CONSTANT SIZE    =   2652    ----
+   XDATA SIZE       =      2    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     16      28
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

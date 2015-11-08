@@ -1,0 +1,1 @@
+"User\Realtek OSD\Code\Realtek_BankSwitch.c" OPTIMIZE (9,SPEED) DEFINE (_PROJECT="_RTD2472D_DEMO_BOARD") PRINT(.\Output\Realtek_BankSwitch.lst) OBJECT(.\Output\Realtek_BankSwitch.obj)

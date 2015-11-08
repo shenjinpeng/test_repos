@@ -1,0 +1,1 @@
+"Common\Code\Debug.c" OPTIMIZE (9,SPEED) DEFINE (_PROJECT="_RTD2472D_DEMO_BOARD") PRINT(.\Output\Debug.lst) OBJECT(.\Output\Debug.obj)

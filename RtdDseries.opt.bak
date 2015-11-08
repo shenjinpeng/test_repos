@@ -1,0 +1,120 @@
+### uVision2 Project, (C) Keil Software
+### Do not modify !
+
+ cExt (*.c)
+ aExt (*.s*; *.src; *.a*)
+ oExt (*.obj)
+ lExt (*.lib)
+ tExt (*.txt; *.h; *.inc)
+ pExt (*.plm)
+ CppX (*.cpp)
+ DaveTm { 0,0,0,0,0,0,0,0 }
+
+Target (RTD2482RD_Demo_Board), 0x0000 // Tools: 'MCS-51'
+Target (RTD2482D_Demo_Board), 0x0000 // Tools: 'MCS-51'
+GRPOPT 1,(Project),0,0,0
+GRPOPT 2,(Pcb),0,0,0
+GRPOPT 3,(Options),0,0,0
+GRPOPT 4,(Panel),0,0,0
+GRPOPT 5,(DCR),0,0,0
+GRPOPT 6,(Common),0,0,0
+GRPOPT 7,(Scaler),0,0,0
+GRPOPT 8,(Realtek OSD),0,0,0
+
+OPTFFF 1,1,5,0,0,0,0,0,<.\Project\Project.h><Project.h> 
+OPTFFF 1,2,5,0,0,0,0,0,<.\Project\RTD2482RD_Demo_Board.h><RTD2482RD_Demo_Board.h> 
+OPTFFF 1,3,5,0,0,0,0,0,<.\Project\RTD2545LR_Demo_Board.h><RTD2545LR_Demo_Board.h> 
+OPTFFF 1,4,5,0,0,0,0,0,<.\Project\RTD2482D_Demo_Board.h><RTD2482D_Demo_Board.h> 
+OPTFFF 2,5,5,0,0,0,0,0,<.\Pcb\RTD2482RD_Demo_PCB.h><RTD2482RD_Demo_PCB.h> 
+OPTFFF 2,6,5,0,0,0,0,0,<.\Pcb\RTD2545LR_DEMO_PCB.h><RTD2545LR_DEMO_PCB.h> 
+OPTFFF 2,7,5,0,0,0,0,0,<.\Pcb\RTD2482D_Demo_PCB.h><RTD2482D_Demo_PCB.h> 
+OPTFFF 3,8,5,0,0,0,0,0,<.\MainDef\Version.h><Version.h> 
+OPTFFF 3,9,5,0,0,0,0,0,<.\Common\Header\Include.h><Include.h> 
+OPTFFF 3,10,5,0,0,0,0,0,<.\MainDef\AdvanceDef.h><AdvanceDef.h> 
+OPTFFF 4,11,5,0,0,0,0,0,<.\Panel\00_CMO_LVDS_17.h><00_CMO_LVDS_17.h> 
+OPTFFF 4,12,5,0,0,0,0,0,<.\Panel\01_AU_RSDS_17.h><01_AU_RSDS_17.h> 
+OPTFFF 4,13,5,0,0,0,0,0,<.\Panel\02_AU_LVDS_15.h><02_AU_LVDS_15.h> 
+OPTFFF 4,14,5,0,0,0,0,0,<.\Panel\03_AU_LVDS_20_WSXGA.h><03_AU_LVDS_20_WSXGA.h> 
+OPTFFF 4,15,5,0,0,0,0,0,<.\Panel\04_AU_LVDS_20_UXGA.h><04_AU_LVDS_20_UXGA.h> 
+OPTFFF 4,16,5,0,0,0,0,0,<.\Panel\05_SAMSUNG_LVDS_19_WXGA.h><05_SAMSUNG_LVDS_19_WXGA.h> 
+OPTFFF 4,17,5,0,0,0,0,0,<.\Panel\06_CMO_LVDS_20_SXGA_PLUS.h><06_CMO_LVDS_20_SXGA_PLUS.h> 
+OPTFFF 4,18,5,0,0,0,0,0,<.\Panel\07_CMO_LVDS_19_WXGA.h><07_CMO_LVDS_19_WXGA.h> 
+OPTFFF 4,19,5,0,0,0,0,0,<.\Panel\08_CMO_LVDS_22_WSXGA_PLUS.h><08_CMO_LVDS_22_WSXGA_PLUS.h> 
+OPTFFF 4,20,5,0,0,0,0,0,<.\Panel\09_AU_LVDS_22_WSXGA.h><09_AU_LVDS_22_WSXGA.h> 
+OPTFFF 4,21,5,0,0,0,0,0,<.\Panel\10_AU_LVDS_23_WUXGA.h><10_AU_LVDS_23_WUXGA.h> 
+OPTFFF 4,22,5,0,0,0,0,0,<.\Panel\11_AU_LVDS_21_5_WUXGA.h><11_AU_LVDS_21_5_WUXGA.h> 
+OPTFFF 4,23,5,0,0,0,0,0,<.\Panel\12_AU_LVDS_24_WUXGA.h><12_AU_LVDS_24_WUXGA.h> 
+OPTFFF 5,24,1,0,0,0,0,0,<.\DCR\Code\DCR_Type_1.c><DCR_Type_1.c> 
+OPTFFF 5,25,1,0,0,0,0,0,<.\DCR\Code\DCR_Type_2.c><DCR_Type_2.c> 
+OPTFFF 5,26,1,0,0,0,0,0,<.\DCR\Code\DCR_Type_3.c><DCR_Type_3.c> 
+OPTFFF 6,27,1,0,0,0,0,0,<.\Common\Code\Align.c><Align.c> 
+OPTFFF 6,28,1,0,0,0,0,0,<.\Common\Code\Ddc.c><Ddc.c> 
+OPTFFF 6,29,1,0,0,0,0,0,<.\Common\Code\Debug.c><Debug.c> 
+OPTFFF 6,30,1,0,0,0,0,0,<.\Common\Code\I2c.c><I2c.c> 
+OPTFFF 6,31,1,0,0,0,0,0,<.\Common\Code\Int.c><Int.c> 
+OPTFFF 6,32,1,0,0,0,0,0,<.\Common\Code\Main.c><Main.c> 
+OPTFFF 6,33,1,0,0,0,0,0,<.\Common\Code\Mcu.c><Mcu.c> 
+OPTFFF 6,34,1,0,0,0,0,0,<.\Common\Code\Timer.c><Timer.c> 
+OPTFFF 6,35,1,0,0,0,0,0,<.\Common\Code\Uart.c><Uart.c> 
+OPTFFF 6,36,2,0,0,0,0,0,<.\Common\STARTUP.A51><STARTUP.A51> 
+OPTFFF 6,37,2,0,0,0,0,0,<.\Common\L51_bank.a51><L51_bank.a51> 
+OPTFFF 7,38,1,1056964610,0,5529,5538,0,<.\Scaler\Code\Adjust.c><Adjust.c> { 44,0,0,0,2,0,0,0,3,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,230,255,255,255,0,0,0,0,0,0,0,0,0,4,0,0,243,0,0,0 }
+OPTFFF 7,39,1,0,0,0,0,0,<.\Scaler\Code\Auto.c><Auto.c> 
+OPTFFF 7,40,1,0,0,0,0,0,<.\Scaler\Code\DisplayPort.c><DisplayPort.c> 
+OPTFFF 7,41,1,0,0,0,0,0,<.\Scaler\Code\FrameSync.c><FrameSync.c> 
+OPTFFF 7,42,1,0,0,0,0,0,<.\Scaler\Code\Hdmi.c><Hdmi.c> 
+OPTFFF 7,43,1,0,0,0,0,0,<.\Scaler\Code\Memory.c><Memory.c> 
+OPTFFF 7,44,1,0,0,0,0,0,<.\Scaler\Code\Misc.c><Misc.c> 
+OPTFFF 7,45,1,0,0,0,0,0,<.\Scaler\Code\Mode.c><Mode.c> 
+OPTFFF 7,46,1,0,0,0,0,0,<.\Scaler\Code\Power.c><Power.c> 
+OPTFFF 7,47,1,0,0,0,0,0,<.\Scaler\Code\Scaler.c><Scaler.c> 
+OPTFFF 7,48,1,0,0,0,0,0,<.\Scaler\Code\Source.c><Source.c> 
+OPTFFF 7,49,1,0,0,0,0,0,<.\Scaler\Code\Sync.c><Sync.c> 
+OPTFFF 7,50,1,0,0,0,0,0,<.\Scaler\Code\Video.c><Video.c> 
+OPTFFF 7,51,1,0,0,0,0,0,<.\Scaler\Code\YPbPr.c><YPbPr.c> 
+OPTFFF 8,52,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_BankSwitch.c><Realtek_BankSwitch.c> 
+OPTFFF 8,53,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_Ddc.c><Realtek_Ddc.c> 
+OPTFFF 8,54,5,0,0,0,0,0,<.\User\Realtek OSD\Header\Realtek_Define.h><Realtek_Define.h> 
+OPTFFF 8,55,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_Eeprom.c><Realtek_Eeprom.c> 
+OPTFFF 8,56,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_Flash.c><Realtek_Flash.c> 
+OPTFFF 8,57,1,704643072,0,181,181,0,<.\User\Realtek OSD\Code\Realtek_Key.c><Realtek_Key.c> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,230,255,255,255,22,0,0,0,29,0,0,0,26,4,0,0,17,1,0,0 }
+OPTFFF 8,58,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_Osd.c><Realtek_Osd.c> 
+OPTFFF 8,59,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_OsdDisp.c><Realtek_OsdDisp.c> 
+OPTFFF 8,60,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_OsdFunc.c><Realtek_OsdFunc.c> 
+OPTFFF 8,61,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_OsdTable.c><Realtek_OsdTable.c> 
+OPTFFF 8,62,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_Struct.c><Realtek_Struct.c> 
+OPTFFF 8,63,1,0,0,0,0,0,<.\User\Realtek OSD\Code\Realtek_Reserved.c><Realtek_Reserved.c> 
+
+
+TARGOPT 1, (RTD2482RD_Demo_Board)
+ CLK51=40000000
+  OPTTT 0,1,1,0
+  OPTHX 0,65535,0,0,0
+  OPTLX 120,65,8,<.\Output\>
+  OPTOX 16
+  OPTLT 1,1,1,0,1,1,0,1,0,0,0,0
+  OPTXL 1,1,1,1,1,1,1,0,0
+  OPTFL 0,0,0
+  OPTDL (S8051.DLL)()(DP51.DLL)(-p53)(S8051.DLL)()(TP51.DLL)(-p53)
+  OPTDBG 44029,-1,()()()()()()()()()() (BIN\MON51.DLL)()()()
+  OPTDF 0x0
+  OPTLE <>
+  OPTLC <>
+EndOpt
+
+TARGOPT 2, (RTD2482D_Demo_Board)
+ CLK51=40000000
+  OPTTT 0,1,1,0
+  OPTHX 0,65535,0,0,0
+  OPTLX 120,65,8,<.\Output\>
+  OPTOX 16
+  OPTLT 1,1,1,0,1,1,0,1,0,0,0,0
+  OPTXL 1,1,1,1,1,1,1,0,0
+  OPTFL 1,0,1
+  OPTDL (S8051.DLL)()(DP51.DLL)(-p53)(S8051.DLL)()(TP51.DLL)(-p53)
+  OPTDBG 44029,-1,()()()()()()()()()() (BIN\MON51.DLL)()()()
+  OPTDF 0x0
+  OPTLE <>
+  OPTLC <>
+EndOpt
+
